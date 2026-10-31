@@ -9,7 +9,7 @@
 - **Database:** A direct Mongoose Atlas connection was verified to database `Nexora` after using Windows system DNS for SRV resolution. The check disconnected after verification. The URI remains in ignored local `backend/.env`.
 - **Tools:** Node test runner, Supertest, npm audit, PowerShell, Git. Thunder Client UI/CLI was not available in the current tool session.
 - **ECC:** Applied `backend-patterns`, `api-design`, `database-migrations`, `security-review`, and `error-handling` review checklists. `security-scan` requires AgentShield to scan Claude configuration; neither the CLI nor a `.claude` directory is present. `npm audit` and manual source review were used as alternatives, not reported as AgentShield. No ECC agent/workflow tool was available in this session.
-- **Earlier inventory:** Initial inspection found empty source placeholders and no root Git repo; no tests were run then. User approved local Git setup during the continuation. The Hugging Face chat endpoint was added after the user's explicit provider/model request; other AI workflows remain unavailable.
+- **Earlier inventory:** Initial inspection found empty source placeholders and no root Git repo; no tests were run then. User approved local Git setup during the continuation. The Hugging Face chat endpoint and the career AI workflows were added after the user's explicit provider/model request; automated AI tests mock the provider.
 - **MongoDB reconnection:** Default Node DNS attempt returned `ECONNREFUSED`; retry using the system DNS resolver succeeded and confirmed database name `Nexora`. No credentials were printed or committed.
 
 ## Implemented API endpoints
@@ -20,13 +20,13 @@
 | API docs | `GET /openapi.json`, `GET /api-docs/` | OpenAPI document and Swagger UI. |
 | Auth | `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me` | Registration `201`; login `200`; protected identity. Invalid input `400`, duplicate account `409`, invalid credentials/token `401`, missing JWT config `503`. |
 | Profile | `GET /api/profile`, `PATCH /api/profile` | Own profile only; Zod validation. |
-| Resume | `POST /api/profile/resume`, `DELETE /api/profile/resume` | Authenticated PDF upload (5 MiB limit), private storage and safe metadata; delete own file. |
+| Resume | `POST /api/profile/resume`, `DELETE /api/profile/resume` | Authenticated PDF upload (5 MiB, 30 pages), signature check, `pdfjs-dist` text extraction (50,000-character cap), private storage, safe metadata and parse status; delete own file. |
 | Applications | `GET/POST /api/applications`; `GET/PATCH/DELETE /api/applications/:id` | Owner-scoped CRUD, status filtering and pagination. |
 | User-provided skills | `GET/POST /api/skills`; `PATCH/DELETE /api/skills/:id` | CRUD for content supplied by the user. No generated assessment. |
 | User-provided roadmaps | `GET/POST /api/roadmaps`; `PATCH/DELETE /api/roadmaps/:id` | CRUD for explicitly supplied records; no generated roadmap. |
 | User-provided projects | `GET/POST /api/projects`; `PATCH/DELETE /api/projects/:id` | CRUD for explicitly supplied records; no recommendation dataset. |
 | User-provided interview records | `GET/POST /api/interviews`; `PATCH/DELETE /api/interviews/:id` | CRUD for user-provided records. |
-| AI-dependent actions | `POST /api/ai/analyze-skills`, `/roadmap/generate`, `/projects/recommend`, `/interviews/start`, `/interviews/:id/answer` | Authenticated requests return controlled `503 AI functionality is currently unavailable`; no LLM calls or fabricated output. |
+| AI career features | `POST /api/ai/analyze-skills`, `/roadmap/generate`, `/projects/recommend`, `/interviews/start`, `/interviews/:id/answer` | Authenticated Hugging Face-backed structured generation from the user's saved target role and skills. Zod-validated output; one retry on malformed output (`502`), timeout `504`, missing configuration/unavailability `503`. Readiness persisted on the profile; interview sessions owner-scoped. |
 | AI chat completion | `GET /api/ai`, `POST /api/ai/chat/completions` | Authenticated endpoint discovery and OpenAI-compatible Hugging Face chat completion; supports text and HTTPS image URLs. Sends only explicit request messages. Requires server-side `HF_TOKEN`; provider calls were not made during verification. |
 
 ## Automated API test cases
@@ -59,21 +59,39 @@ The default test harness uses Supertest and mocks database methods for isolated 
 | API-022 | Resources | GET/POST/PATCH/DELETE | Skills, roadmaps, projects, interviews | CRUD success; every query owner-scoped | `200`/`201`/`200`/`204`; owner filters asserted | PASS | Database methods mocked. |
 | API-023 | Resume | POST | `.txt` upload | `400` | `400`, PDF-only error | PASS | Auth user mocked. |
 | API-024 | Resume | POST | Text named `.pdf` | `400`, remove rejected temp file | `400`; temp directory empty | PASS | Signature check verified. |
-| API-025 | Resume | POST | Minimal PDF signature | `201`, random name and safe metadata | `201`; random UUID filename; no stored path returned | PASS | Database save mocked; temp file cleaned after test. |
+| API-025 | Resume | POST | Valid one-page PDF with text | `201`, random name, safe metadata, page count and parse status | `201`; text extracted; UUID filename; no stored path or text returned | PASS | Database save mocked; temp file cleaned after test. |
 | API-026 | Resume | DELETE | Own resume | `204` and remove stored file | `204`; temp directory empty | PASS | Database save mocked. |
-| API-027 | AI | POST | Each of five AI-dependent endpoints | Authenticated `503`, no generated response | All five returned `503 AI functionality is currently unavailable` | PASS | These workflows do not use chat completion. |
+| API-027 | AI (historical) | POST | Five AI-dependent endpoints before implementation | Authenticated `503`, no generated response | All five previously returned `503 AI functionality is currently unavailable` | SUPERSEDED | Stub tests removed; current behavior covered by API-030–API-039. |
 | API-028 | AI | GET/POST | `/api/ai` and `/api/ai/chat/completions` without bearer token | `401` and no route-not-found | `401`; OpenAPI includes chat path | PASS | Confirms route registration and authentication. |
 | API-029 | AI validation | POST | Chat message with HTTP image URL | `400` before provider request | `400` | PASS | HTTPS required for image URL parts. |
+| API-030 | AI skills | POST | `/api/ai/analyze-skills` with saved role and skills | `200`; readiness, categories, strengths, gaps, next steps; saved to profile | `200`; score persisted via `$set profile.readiness`; prompt omitted email/resume metadata | PASS | Provider mocked. |
+| API-031 | AI roadmap | POST | `/api/ai/roadmap/generate` with weeks/hours | `200`; weekly milestones | `200`; requested week/hour values reached the prompt | PASS | Provider mocked. |
+| API-032 | AI projects | POST | `/api/ai/projects/recommend` with count | `200`; project ideas with technologies, difficulty, skills, first steps | `200`; requested count reached the prompt | PASS | Provider mocked. |
+| API-033 | AI interviews | POST | `/api/ai/interviews/start` | `201`; owner-scoped session with generated questions | `201`; `kind: interview`, user set from token, status `active` | PASS | Provider and database create mocked. |
+| API-034 | AI interviews | POST | `/api/ai/interviews/:id/answer` | `200`; evaluation and progress persisted | `200`; score, progress and owner filter asserted | PASS | Provider and database methods mocked. |
+| API-035 | AI interviews | POST | Answer another owner’s session or repeat a question | `404` for wrong owner; `409` for duplicate | `404` / `409`; no provider calls | PASS | Owner scoping and duplicate guard verified. |
+| API-036 | AI validation | POST | Career AI call without target role or skills | `400` before provider request | `400`; no provider calls | PASS | Actionable messages returned. |
+| API-037 | AI configuration | POST | Career AI call without `HF_TOKEN` | `503`; no fabricated output | `503 Hugging Face AI is not configured` | PASS | Isolated app instance. |
+| API-038 | AI errors | POST | Provider returns unreadable JSON | `502` after one retry; safe message | `502`; exactly two provider calls | PASS | No internal provider details exposed. |
+| API-039 | AI authorization | POST | Skills analysis for authenticated user | Queries limited to token subject | Skills query filtered by user and `kind: skill` | PASS | Provider and queries mocked. |
+| API-040 | Resume parsing | Service | `pdfjs-dist` extracts a one-page PDF | Bounded text, page count, `processed` | Text matched fixture; page count 1; length within cap | PASS | Generated local PDF fixture. |
+| API-041 | Resume parsing | Service | PDF page without selectable text | `no_text`, empty text | `no_text`, empty text, page count 1 | PASS | Scanned PDFs are accepted without OCR. |
+| API-042 | Resume parsing | Service | Unreadable PDF | Safe `400`, no parser internals | `400` "could not be read" | PASS | Error message contains no stack/details. |
+| API-043 | Resume upload | POST | Valid PDF with text | `201`; extracted text persisted with profile, not returned | `201`; `processed`, page count 1; `text` stored | PASS | Database save mocked. |
+| API-044 | Resume upload | POST | PDF without selectable text | `201`; `no_text` status | `201`; empty text stored, `no_text` returned | PASS | Database save mocked. |
+| API-045 | Resume upload | POST | PDF header with unreadable body | `400`; temp file removed | `400`; upload directory empty | PASS | Parser rejection path. |
 
 ## Latest verification
 
-- `npm run openapi` regenerated `backend/openapi.json` successfully.
-- `npm run check` passed 34 tests with 2 opt-in live database tests skipped (36 discovered; 0 failures).
-- `npm run test:live-db` passed both live tests: synthetic auth/profile/ownership integration and Mongo-unavailable failure handling. The graceful shutdown helper has separate passing unit tests.
-- Live checks: `GET /` and `/healthz` returned `200`; `/api/ai` and `/api/ai/chat/completions` returned `401` without authentication; `/openapi.json` returned `200` and declared the chat endpoint.
-- No real Hugging Face request was sent. Provider integration requires `HF_TOKEN`; live provider execution was not verified.
+- `npm run openapi` regenerated `backend/openapi.json` successfully after adding the AI career and resume-parsing changes.
+- `npm run check` passed 50 tests with 1 opt-in live database test skipped (51 discovered; 0 failures). This includes the AI career tests (provider mocked) and `pdfjs-dist` resume parsing tests.
+- `npm audit --audit-level=low` reported 0 vulnerabilities after adding `pdfjs-dist`.
+- `npm run test:live-db` previously passed the opt-in live tests: synthetic auth/profile/ownership integration and Mongo-unavailable failure handling. The graceful shutdown helper has separate passing unit tests. The live suite was not rerun after the AI or parser changes.
+- Live checks previously confirmed `GET /` and `/healthz` return `200`; `/api/ai` and `/api/ai/chat/completions` return `401` without authentication; `/openapi.json` returns `200` and declares the chat endpoint. These basic checks were not repeated during the AI-feature edit.
+- No real Hugging Face request was sent. Provider integration requires `HF_TOKEN`; live model access and latency remain unverified.
 - Mongo startup retest: `npm run dev` started successfully with the configured resolver; live `/readyz` returned database `connected`.
 - Live auth test accounts, application marker and skill marker all verified absent after cleanup.
+- Frontend checks on the same date: `npm run lint` passed; `npm test` passed (3 files, 8 tests); `npm run build` passed; `npm run test:e2e` passed (7 Chromium tests). Frontend tests use synthetic intercepted API fixtures.
 
 ## Security test cases
 
@@ -85,7 +103,7 @@ The default test harness uses Supertest and mocks database methods for isolated 
 | Validation / injection | PASS (focused) | Missing/malformed fields, strict mass-assignment fields, NoSQL operator input, profile bounds and malformed JSON rejected. Broader fuzzing remains unrun. |
 | CORS | PASS | Explicit allowlist; disallowed origin rejected; wildcard disabled. |
 | Security headers | PASS | Helmet headers and CSP verified; inline script/style allowances removed from API CSP. HSTS only production mode. |
-| File uploads | PASS (focused) | MIME/extension, size limit configured, signature checked, server-generated names, private storage; content parser/corruption validation beyond header not implemented. |
+| File uploads | PASS (focused) | MIME/extension, size limit, signature, server-generated names, private storage, `pdfjs-dist` parsing with page/character/time bounds. Encrypted and unreadable PDFs rejected; scanned PDFs accepted without OCR. No malware scanning. |
 | Sensitive data exposure | PASS (focused) | Password hash and stored resume path omitted from auth/upload responses; generic errors omit stacks. No production logging/deployment audit performed. |
 | Dependency vulnerabilities | PASS | `npm audit`: zero vulnerabilities after upgrading Multer to 2.5.0 and Zod to 4.6.7. |
 | HTTPS | BLOCKED | No local certificate or deployment reverse proxy. Local HTTP is not HTTPS. |
@@ -106,19 +124,19 @@ To import and run manually:
 
 - Thunder Client runs were not executed; importable OpenAPI file is prepared.
 - No live Hugging Face completion was attempted; provider availability/model access remains unverified.
-- Resume text extraction is not implemented; no PDF parser selected. Current file check verifies PDF signature, not full document structure.
+- Resume parsing uses `pdfjs-dist`. Scanned/image-only PDFs return `no_text`; OCR is not implemented. Malware scanning and real-resume parser verification remain pending.
 - Production TLS and reverse-proxy redirect need a deployment target/certificate.
 - Rate limiter needs shared storage for multi-process deployment.
 - No complete account deletion/retention workflow exists yet.
-- Login/registration frontend pages are not present in this backend-only repository.
+- Live browser validation with a real account and MongoDB data remains pending; frontend automated checks use synthetic intercepted API fixtures.
 
 ## Results and work summary
 
-- **Completed:** Express/Mongoose modular foundation, auth/profile/application routes, user-authored resource CRUD, private resume upload/delete, validation, security middleware, OpenAPI docs, AI provider endpoint, tests and environment protections.
-- **Automated checks passed:** 34 tests passed and 2 opt-in live tests skipped by default; both live DB tests passed when explicitly enabled. `npm audit` reports 0 vulnerabilities.
-- **Failed checks:** Earlier draft test runs had test-mock mismatches and a masked expected 503; both were corrected. Final run has no failing test.
-- **Blocked/not run:** Thunder Client and live Hugging Face provider request; production HTTPS and deployment-scale shared rate limiting.
-- **Not implemented:** Generated skills/roadmaps/projects/interviews, resume text extraction, frontend and deployment.
+- **Completed:** Express/Mongoose modular foundation, auth/profile/application routes, user-authored resource CRUD, private resume upload/delete with `pdfjs-dist` text extraction, validation, security middleware, OpenAPI docs, Hugging Face chat endpoint, AI career analysis/generation/interview endpoints, frontend application shell and module UIs, tests and environment protections.
+- **Automated checks passed:** Backend `npm run check` passed 44 tests with 1 opt-in live test skipped (45 discovered; 0 failures). The live database suite previously passed both opt-in tests. Frontend lint, 8 unit tests, production build and 7 Playwright tests passed. `npm audit` previously reported 0 vulnerabilities.
+- **Failed checks:** Earlier draft test runs had test-mock mismatches and a masked expected 503; both were corrected. One full Playwright run failed on a cold dev-server start, then the affected spec and full suite passed on rerun. Final automated runs have no failing test.
+- **Blocked/not run:** Thunder Client and a live Hugging Face provider request; production HTTPS and deployment-scale shared rate limiting.
+- **Not implemented:** Resume OCR, live-account browser validation and production deployment.
 
 ## Git commit and push history
 
@@ -132,7 +150,7 @@ To import and run manually:
 
 ### Authentication endpoints and live synthetic tests
 
-Actual routes found in source: `POST /api/auth/register`, `POST /api/auth/login`, and protected `GET /api/auth/me`. There is no logout endpoint. JWTs are stateless HS256 tokens with a one-hour expiry; logout cannot revoke an already-issued token. Registration accepts email/password only; names are stored later at `profile.fullName`, so a registration payload containing `name` is rejected by strict validation.
+Actual routes found in source: `POST /api/auth/register`, `POST /api/auth/login`, and protected `GET /api/auth/me`. There is no logout endpoint. JWTs are stateless HS256 tokens with a 300-second (5-minute) expiry; logout cannot revoke an already-issued token. Registration accepts email/password only; names are stored later at `profile.fullName`, so a registration payload containing `name` is rejected by strict validation.
 
 | Test ID | Module | ECC skill applied | Method / endpoint | Scenario and request data | Expected | Actual | Result / notes |
 |---|---|---|---|---|---|---|---|
@@ -141,7 +159,7 @@ Actual routes found in source: `POST /api/auth/register`, `POST /api/auth/login`
 | ECC-AUTH-03 | Auth validation | `security-review`, `error-handling` | `POST /api/auth/register` | Missing email/password, malformed email/JSON, short password, unsupported `name`/`role` | `400` | `400` for each tested case | PASS; missing fields and malformed input also covered in isolated tests. |
 | ECC-AUTH-04 | Password data | `security-review`, `database-migrations` | MongoDB User record | Read User A hash with explicit secret-field selection; compare using bcrypt | Hash differs from raw test password and verifies | bcrypt comparison succeeded; hash was not returned by API | PASS; test account was cleaned up. |
 | ECC-AUTH-05 | Login | `security-review`, `api-design` | `POST /api/auth/login` | Valid credentials for A/B, wrong password, and unknown email | Valid `200`; bad/unknown `401` with generic message | A/B `200`; wrong/unknown `401` | PASS against live Atlas; isolated test also checks generic failure equality. |
-| ECC-AUTH-06 | JWT | `security-review` | `GET /api/auth/me` | Valid, missing, malformed, and expired bearer token; token expiry claims | Valid `200`; others `401`; one-hour expiry | `200` valid; `401` missing/malformed/expired; `exp` verified | PASS. |
+| ECC-AUTH-06 | JWT | `security-review` | `GET /api/auth/me` | Valid, missing, malformed, and expired bearer token; token expiry claims | Valid `200`; others `401`; 300-second expiry | `200` valid; `401` missing/malformed/expired; `exp` verified | PASS. |
 | ECC-AUTH-07 | Logout | `api-design` | `POST /api/auth/logout` | Discover behavior for logout path | Do not claim unsupported revocation | `404` | PASS; no logout endpoint exists; existing stateless JWTs remain usable until expiry. |
 | ECC-DATA-01 | MongoDB | `database-migrations`, `backend-patterns` | Mongoose connection and collection indexes | Connect to database; inspect unique email and owner indexes | DB is `Nexora`; indexes match models | Connected to `Nexora`; unique `email_1`, application owner/date and resource owner/kind/date indexes present | PASS; no migration or schema alteration was applied. |
 | ECC-DATA-02 | Profile | `backend-patterns`, `security-review` | `GET/PATCH /api/profile` | Read and update User A profile; try email mass assignment and negative experience | Own profile succeeds; forbidden field/bad bound `400` | `200`, `200`, `400`, `400` | PASS; profile is embedded in User; `fullName` is not a registration field. |
@@ -159,7 +177,7 @@ Actual routes found in source: `POST /api/auth/register`, `POST /api/auth/login`
 - `Application` is a dedicated model and was tested live for owner scoping and CRUD.
 - Skills, roadmaps, projects and interviews share the generic `UserResource` model. Its `data` is `Mixed` and only required to be a non-empty object; per-feature fields are not schema-validated. CRUD owner scoping was tested live for skills and with mocks across all four kinds. No nonexistent recommendation/interview session model is claimed as tested.
 - Profile, target role/career goal, and resume metadata are embedded under `User`; there is no separate career-goal, resume, or skill-gap model.
-- Resume MIME/signature/private-storage checks ran in the automated suite using temporary local test files; no resume was uploaded to Atlas in this live auth test.
+- Resume MIME/signature/private-storage and `pdfjs-dist` parsing checks ran in the automated suite using temporary local test files; no resume was uploaded to Atlas in this live auth test.
 - Frontend login/registration pages are absent; this repository contains backend sources and docs only.
 
 ### ECC skills, agents and workflows

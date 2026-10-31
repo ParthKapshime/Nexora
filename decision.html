@@ -13,18 +13,18 @@
   </style>
 </head>
 <body>
-  <h1>Nexora backend decision log</h1>
+  <h1>Nexora project decision log</h1>
   <p>Updated 2026-10-31. No credentials, passwords, tokens, or private configuration values are recorded here.</p>
 
   <section>
     <h2>Requirements supplied by the user</h2>
     <table><tbody>
       <tr><th>Product</th><td>Nexora, an AI-powered career guidance and skill-development platform. <code>AGENTS.md</code> is the primary project guidance.</td></tr>
-      <tr><th>Architecture</th><td>Backend modular monolith using existing config, controllers, middleware, models, routes and services folders. No frontend in this phase.</td></tr>
+      <tr><th>Architecture</th><td>Modular monolith: React/Vite frontend in <code>frontend/</code> and Express/Mongoose backend in <code>backend/</code>. The frontend uses REST only; only the backend connects to MongoDB and Hugging Face.</td></tr>
       <tr><th>Stack</th><td>Node.js, Express, MongoDB Atlas/Mongoose, REST, JWT, bcrypt. The backend prompt also explicitly specifies Zod and OpenAPI/Swagger.</td></tr>
       <tr><th>Database</th><td>Atlas database name is exactly <code>Nexora</code>. The user supplied a local credentials file; its URI is saved in ignored <code>backend/.env</code>. A Mongoose connection was verified to <code>Nexora</code>. No secret values are recorded here.</td></tr>
       <tr><th>Server</th><td>Port 5000; local development URL <code>http://localhost:5000</code>.</td></tr>
-      <tr><th>AI/external data</th><td>The user later explicitly requested Hugging Face Inference Providers using the OpenAI-compatible router and model <code>Qwen/Qwen3.8-27B:novita</code>. This is a direct exception to the earlier Ollama-only guidance. The token is server-side in ignored <code>backend/.env</code>; only request messages explicitly submitted to the chat endpoint are forwarded. Resume/profile data is never attached automatically.</td></tr>
+      <tr><th>AI/external data</th><td>The user explicitly requested Hugging Face Inference Providers using the OpenAI-compatible router and model <code>Qwen/Qwen3.8-27B:novita</code>. Project guidance now standardizes on Hugging Face; no Ollama, Gemini, or OpenAI-hosted provider is used. The token is server-side in ignored <code>backend/.env</code>. Career AI requests send only the saved target role, profile summary, and skill records needed for the request; chat sends only its explicit messages. Resume file contents are never attached automatically.</td></tr>
       <tr><th>Security/docs</th><td>HTTPS readiness and backend security are required. Maintain <code>test.md</code>, <code>error.md</code> and this file.</td></tr>
       <tr><th>Git</th><td>User approved initialization and remote configuration in this folder. Root repo is on <code>master</code>; the first commit <code>02563db9bddf0323843a6882a9d5ad3824c722ae</code> was pushed to <code>origin/master</code> and verified remotely.</td></tr>
     </tbody></table>
@@ -35,12 +35,12 @@
     <table><thead><tr><th>Decision</th><th>Reason and alternatives</th><th>Approval</th></tr></thead><tbody>
       <tr><td>Use CommonJS JavaScript and Express</td><td>Matches existing <code>.js</code> placeholders and the approved backend stack. No language or framework change.</td><td>Explicitly specified.</td></tr>
       <tr><td>Use MongoDB/Mongoose with database <code>Nexora</code></td><td>Connection is environment-driven and enforces the required database path. No credentials are hardcoded. Real connection is blocked pending a rotated URI in ignored local <code>backend/.env</code>.</td><td>Explicitly specified.</td></tr>
-      <tr><td>Authentication</td><td>bcryptjs cost 12, HS256 bearer JWT with one-hour expiry, generic invalid-login response, and owner-scoped queries. JWT signing secret is required locally and in production.</td><td>JWT and bcrypt explicitly specified.</td></tr>
+      <tr><td>Authentication</td><td>bcryptjs cost 12, HS256 bearer JWT with a 300-second (5-minute) expiry, generic invalid-login response, and owner-scoped queries. JWT signing secret is required locally and in production.</td><td>JWT and bcrypt explicitly specified.</td></tr>
       <tr><td>Zod 4.6.7 validation</td><td>Validates bodies, parameters and queries. Initial install audit identified a high severity issue in Zod 3, so the dependency was upgraded and re-audited.</td><td>Zod explicitly specified; secure version selected during implementation.</td></tr>
       <tr><td>HTTP security</td><td>Helmet/CSP, production HSTS, allowlist CORS, body size cap, Mongo operator sanitization, global/auth/upload rate limits, private upload storage, request IDs, and safe errors. In-process rate limits need a shared store before multi-instance deployment.</td><td>Security protections explicitly required; shared store depends on deployment setup.</td></tr>
-      <tr><td>Resume upload</td><td>PDF MIME/extension allowlist, 5 MiB cap, server-generated names, PDF signature check, and private ignored storage. Text extraction is not included because no parser was selected.</td><td>Secure upload explicitly required; parser choice remains pending.</td></tr>
-      <tr><td>User data resources</td><td>Skills, roadmaps, projects and interview records store only authenticated-user supplied content. Assessment, recommendation and AI generation endpoints return 503 rather than fabricate results.</td><td>User-data modules specified; AI inactivity explicitly specified.</td></tr>
-      <tr><td>AI provider integration</td><td>Added OpenAI-compatible Hugging Face Router chat completion at <code>POST /api/ai/chat/completions</code>, with model <code>Qwen/Qwen3.8-27B:novita</code>, authenticated/rate-limited access, bounded text/image input, HTTPS-only image URLs, and safe provider errors. The route sends only its explicit request body. Profile-based skill/roadmap/project/interview workflows remain unavailable. Live provider execution requires <code>HF_TOKEN</code> in the local/deployment environment; no token is committed.</td><td>Explicit user request for the HF model supersedes the earlier Ollama-only decision for this endpoint.</td></tr>
+      <tr><td>Resume upload and parsing</td><td>PDF MIME/extension allowlist, 5 MiB cap, server-generated names, PDF signature check, and private ignored storage. <code>pdfjs-dist</code> 6.4.299 extracts selectable text on upload with a 30-page limit, 50,000 stored characters, and a 15-second timeout. This raises the backend runtime floor to Node 22.13+. Encrypted or unreadable PDFs are rejected; scanned PDFs are accepted with <code>parseStatus: "no_text"</code>. Text is excluded from API responses by default and included in AI prompts only when available. No OCR is implemented.</td><td>User selected <code>pdfjs-dist</code>; secure upload explicitly required.</td></tr>
+      <tr><td>User data resources</td><td>Skills, roadmaps, projects and interview records store authenticated-user content. AI-generated roadmaps and project ideas are returned to the UI and are not saved until the user explicitly saves them. Interview sessions store generated questions, submitted answers, per-answer feedback, progress and average score, scoped to their owner. Readiness is stored on the profile after analysis.</td><td>Required modules implemented; generation results remain distinguishable from user-authored records.</td></tr>
+      <tr><td>AI provider integration</td><td>OpenAI-compatible Hugging Face Router is used for chat completion and the career AI endpoints at <code>POST /api/ai/analyze-skills</code>, <code>/roadmap/generate</code>, <code>/projects/recommend</code>, <code>/interviews/start</code>, and <code>/interviews/:id/answer</code>. The model is <code>Qwen/Qwen3.8-27B:novita</code> unless overridden by <code>HF_MODEL</code>. Responses are parsed and Zod-validated; malformed output is retried once then reported as 502, timeouts as 504, and missing configuration/unavailability as 503. All routes are authenticated and rate-limited, with safe errors and no silent provider fallback. Live provider execution requires <code>HF_TOKEN</code>; no token is committed.</td><td>Explicit user request for Hugging Face; project guidance updated to match.</td></tr>
       <tr><td>OpenAPI/Swagger</td><td>Canonical OpenAPI 3 spec is served at <code>/openapi.json</code>, Swagger UI at <code>/api-docs</code>, and generated static JSON at <code>backend/openapi.json</code> for Thunder Client import.</td><td>Explicitly requested.</td></tr>
       <tr><td>Git repository setup</td><td>Root Git repository and supplied origin were configured after the user approved it. An empty nested <code>backend/.git</code> (no refs, objects, commits or remote) was preserved under an ignored backup name to prevent accidental gitlink staging.</td><td>Approved by user.</td></tr>
       <tr><td>HTTPS</td><td>Local development stays HTTP. HSTS is enabled in production mode; actual TLS and HTTP-to-HTTPS redirect require a future deployment reverse proxy/certificate.</td><td>HTTPS readiness explicitly required; no deployment target selected.</td></tr>
@@ -50,11 +50,12 @@
   <section>
     <h2>Remaining blockers and pending decisions</h2>
     <ul>
-      <li>MongoDB connectivity is verified. Configure a 32+ character JWT secret in local ignored <code>backend/.env</code> before starting the full API. If that file reuses the password previously exposed in chat, rotate it.</li>
-      <li>Decide whether resume text extraction is needed for this phase; it requires selecting a PDF parser.</li>
+      <li>MongoDB connectivity is verified. Configure a 32+ character JWT secret and a valid <code>HF_TOKEN</code> in local ignored <code>backend/.env</code> before starting the full API. If that file reuses the password previously exposed in chat, rotate it.</li>
+      <li>AI career endpoints and their UI are implemented, but no live Hugging Face provider request has been verified. Automated tests mock the provider.</li>
+      <li>Resume text extraction is implemented with <code>pdfjs-dist</code>. Scanned/image-only PDFs produce <code>parseStatus: "no_text"</code>; OCR is not implemented.</li>
       <li>Before scaling beyond one server process, configure a shared rate-limit store.</li>
       <li>Thunder Client tests remain unrun. Import <code>backend/openapi.json</code> after local environment configuration.</li>
-      <li>Production push verification completed for the initial backend commit; subsequent changes must continue using the same remote and normal fast-forward pushes.</li>
+      <li>Production push verification completed for the initial backend commits; subsequent changes must continue using the same remote and normal fast-forward pushes.</li>
     </ul>
   </section>
 

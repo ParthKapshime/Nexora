@@ -114,7 +114,7 @@ export default function ProfilePage() {
     try {
       const { data } = await profileApi.uploadResume(file)
       setResume(data.resume)
-      setSuccess('Your PDF resume was uploaded.')
+      setSuccess(data.resume?.parseStatus === 'no_text' ? 'Your PDF was uploaded, but no selectable text was found. AI analysis will use your saved profile and skills.' : 'Your PDF resume was uploaded and its text was extracted.')
     } catch (requestError) { setError(getErrorMessage(requestError)) }
     finally { setUploading(false); event.target.value = '' }
   }
@@ -159,8 +159,8 @@ export default function ProfilePage() {
       <div className="profile-side-column"><Card><CardHeader><div><CardTitle>Resume</CardTitle><CardDescription>Upload a PDF to keep it with your profile.</CardDescription></div></CardHeader><CardContent>
         <label className={`resume-dropzone ${uploading ? 'is-disabled' : ''}`} htmlFor="resume-file"><span className="upload-icon"><Upload size={20} /></span><strong>Choose a PDF resume</strong><small>PDF only · up to 5 MiB</small><span className="button button-secondary">Browse files</span><input id="resume-file" type="file" accept="application/pdf,.pdf" onChange={uploadResume} disabled={uploading} /></label>
         {uploading && <LoadingState label="Updating your resume" />}
-        {resume && <div className="resume-summary"><span className="resume-file-icon"><FileText size={18} /></span><span className="resume-meta"><strong>{resume.originalName || 'Saved resume'}</strong><small>{resume.uploadedAt ? new Date(resume.uploadedAt).toLocaleDateString() : 'Uploaded'} · {resume.size ? `${(resume.size / 1024 / 1024).toFixed(1)} MB` : 'PDF'}</small></span><Button variant="ghost" size="icon" aria-label="Remove resume" onClick={() => void deleteResume()} disabled={uploading}><Trash2 size={15} /></Button></div>}
-        <div className="inline-notice">Upload status is available. Resume analysis or processing status is not returned by the current API.</div>
+        {resume && <div className="resume-summary"><span className="resume-file-icon"><FileText size={18} /></span><span className="resume-meta"><strong>{resume.originalName || 'Saved resume'}</strong><small>{resume.uploadedAt ? new Date(resume.uploadedAt).toLocaleDateString() : 'Uploaded'} · {resume.size ? `${(resume.size / 1024 / 1024).toFixed(1)} MB` : 'PDF'}{resume.pageCount ? ` · ${resume.pageCount} ${resume.pageCount === 1 ? 'page' : 'pages'}` : ''}</small><small>{resume.parseStatus === 'processed' ? 'Text extracted for AI analysis' : resume.parseStatus === 'no_text' ? 'No selectable text found — AI analysis will use saved details only' : 'Processing status unavailable'}</small></span><Button variant="ghost" size="icon" aria-label="Remove resume" onClick={() => void deleteResume()} disabled={uploading}><Trash2 size={15} /></Button></div>}
+        <div className="inline-notice">PDFs are parsed with pdfjs-dist. Scanned or password-protected files may not provide selectable text.</div>
       </CardContent></Card>
       <Card className="profile-completion"><CardHeader><div><CardTitle>Profile details</CardTitle><CardDescription>Based on the information you’ve saved.</CardDescription></div></CardHeader><CardContent><div className="progress-caption"><strong>{completion}/5 details present</strong><span>{completion * 20}%</span></div><div className="progress-track" role="progressbar" aria-label="Profile details present" aria-valuemin="0" aria-valuemax="5" aria-valuenow={completion}><span style={{ width: `${completion * 20}%` }} /></div><ul className="completion-list">{[
         ['Full name', Boolean(profile.fullName)], ['Target role', Boolean(profile.targetRole)], ['Experience', profile.yearsOfExperience !== undefined && profile.yearsOfExperience !== null], ['Education', education.length > 0], ['Resume', Boolean(resume)],

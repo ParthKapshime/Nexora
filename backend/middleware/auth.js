@@ -14,7 +14,7 @@ const requireAuth = asyncHandler(async (req, _res, next) => {
   } catch {
     throw new ApiError(401, 'Invalid or expired authentication token');
   }
-  const user = await User.findById(payload.sub).select('_id email');
+  const user = await User.findById(payload.sub).select('_id email profile');
   if (!user) throw new ApiError(401, 'Invalid or expired authentication token');
   req.user = user;
   next();

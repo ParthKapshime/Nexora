@@ -301,6 +301,79 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .unsupported-spark { margin-left: auto; color: #ae7b65; }
 .interview-record .stat-icon { width: 32px; height: 32px; }
 
+.ai-feature-card { margin-bottom: 14px; }
+.ai-feature-card .card-header { align-items: center; }
+.ai-feature-card .card-content { padding-top: 14px; }
+.readiness-summary { border: 1px solid #f0e2d8; border-radius: 10px; background: #fdf8f3; padding: 13px 14px; }
+.readiness-summary .progress-track { margin: 8px 0 9px; }
+.readiness-summary p { margin: 0; color: #5c524b; font-size: 11px; line-height: 1.65; }
+.analysis-updated { display: block; margin-top: 7px; color: #9a8f88; font-size: 9px; }
+.analysis-tags { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+.analysis-category { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border); border-radius: 999px; padding: 5px 9px; color: #786d66; background: #fff; font-size: 9px; }
+.analysis-category svg { color: var(--rust); }
+.analysis-category b { color: #4b423c; font-size: 9px; }
+.analysis-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+.analysis-block { border: 1px solid var(--border); border-radius: 9px; padding: 12px; background: #fffdfb; }
+.analysis-block h3 { margin: 0 0 8px; color: #4b423c; font-size: 11px; }
+.analysis-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.analysis-list li { display: grid; gap: 3px; color: #746a63; font-size: 10px; line-height: 1.55; }
+.analysis-list b { color: #423a35; font-size: 10px; }
+.gap-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.analysis-next { margin-top: 12px; }
+.analysis-next ol { display: grid; gap: 6px; margin: 0; padding-left: 17px; color: #6f665f; font-size: 10px; }
+.ai-generator-controls { display: grid; grid-template-columns: 150px 150px auto; align-items: end; gap: 12px; }
+.ai-plan { margin-top: 14px; }
+.ai-plan-head { border: 1px solid #f0e2d8; border-radius: 10px; background: #fdf8f3; padding: 13px 14px; }
+.ai-plan-head .eyebrow { color: var(--rust); }
+.ai-plan-head h3 { margin: 7px 0 3px; font-size: 13px; }
+.ai-plan-head p { margin: 0; color: #776b63; font-size: 10px; }
+.plan-weeks { display: grid; margin-top: 10px; }
+.plan-week { display: grid; grid-template-columns: 95px minmax(0, 1fr); gap: 12px; border-top: 1px solid #f3f0ed; padding: 12px 0; }
+.plan-week:first-child { border-top: 0; }
+.plan-week-number { display: inline-flex; align-items: center; gap: 5px; height: fit-content; width: fit-content; border-radius: 999px; padding: 4px 8px; color: var(--rust); background: #f8ece6; font-size: 9px; font-weight: 720; }
+.plan-week h4 { margin: 0; color: #423a35; font-size: 11px; }
+.plan-week ul { display: grid; gap: 7px; margin: 7px 0 0; padding: 0; list-style: none; }
+.plan-week li { display: grid; gap: 2px; color: #7a7069; font-size: 10px; }
+.plan-week li strong { color: #4b423c; font-size: 10px; }
+.plan-week li small { color: #9b9089; font-size: 9px; }
+.recommendation-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.recommendation-card { display: flex; min-width: 0; flex-direction: column; gap: 8px; border: 1px solid var(--border); border-radius: 10px; background: #fffdfb; padding: 14px; }
+.recommendation-meta { display: flex; flex-wrap: wrap; gap: 5px; }
+.recommendation-card h3 { margin: 0; color: #3b342f; font-size: 12px; }
+.recommendation-card p { margin: 0; color: #776d66; font-size: 10px; line-height: 1.6; }
+.recommendation-detail { display: grid; gap: 2px; color: #857a73; font-size: 9px; }
+.recommendation-detail strong { color: #5d534c; font-size: 9px; letter-spacing: .45px; text-transform: uppercase; }
+.recommendation-actions { display: flex; justify-content: flex-end; margin-top: auto; padding-top: 4px; }
+.interview-setup { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) auto; align-items: end; gap: 12px; }
+.interview-session .card-header { align-items: flex-start; }
+.interview-question-list { display: grid; }
+.interview-question { border-top: 1px solid #f2efeb; padding: 14px 0; }
+.interview-question:first-child { border-top: 0; }
+.question-head { display: flex; align-items: flex-start; gap: 10px; }
+.question-number { display: grid; width: 24px; height: 24px; flex: 0 0 auto; place-items: center; border-radius: 7px; color: var(--rust); background: #f8ece6; font-size: 10px; font-weight: 740; }
+.question-head > div { min-width: 0; flex: 1; }
+.question-head h3 { margin: 1px 0 0; color: #3f3732; font-size: 11px; line-height: 1.5; }
+.question-head p { margin: 2px 0 0; color: #978c85; font-size: 9px; }
+.answer-editor { margin: 10px 0 0 34px; }
+.answer-editor label { display: block; margin-bottom: 5px; color: #514943; font-size: 10px; font-weight: 680; }
+.answer-editor .form-actions { margin-top: 8px; }
+.answer-feedback { margin: 11px 0 0 34px; border: 1px solid #eee7e1; border-radius: 9px; background: #fdfbf9; padding: 12px; }
+.answer-feedback h4 { margin: 0; color: #4a413b; font-size: 11px; }
+.feedback-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 9px; }
+.feedback-columns strong { color: #5d534c; font-size: 9px; letter-spacing: .45px; text-transform: uppercase; }
+.feedback-columns ul { display: grid; gap: 4px; margin: 5px 0 0; padding-left: 15px; color: #776d66; font-size: 10px; }
+.feedback-columns p { margin: 5px 0 0; color: #9a8f88; font-size: 9px; }
+.suggested-answer, .submitted-answer { margin-top: 10px; border-top: 1px solid #f0ece7; padding-top: 9px; }
+.suggested-answer strong, .submitted-answer strong { color: #5d534c; font-size: 9px; letter-spacing: .45px; text-transform: uppercase; }
+.suggested-answer p, .submitted-answer p { margin: 4px 0 0; color: #6f665f; font-size: 10px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+.interview-complete { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; border: 1px solid #d9e8d9; border-radius: 8px; padding: 9px 11px; color: #537357; background: #f3f8f1; font-size: 10px; }
+.readiness-card { margin-top: 14px; }
+.readiness-card .card-content { padding: 15px 18px; }
+.readiness-card .progress-caption strong { display: inline-flex; align-items: center; gap: 6px; }
+.readiness-summary-text { margin: 0; color: #655b55; font-size: 10px; line-height: 1.6; }
+.readiness-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 9px; color: #978c85; font-size: 9px; }
+.readiness-note a { display: inline-flex; align-items: center; gap: 5px; color: var(--rust); font-weight: 720; }
+
 .landing-page { min-height: 100vh; padding: 0 max(6vw, 24px); background: #fffcf7; }
 .landing-header { display: flex; height: 78px; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
 .landing-header nav { display: flex; align-items: center; gap: 21px; }
@@ -388,6 +461,9 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   .main-content { padding: 25px 22px 42px; }
   .dashboard-grid, .profile-grid { grid-template-columns: 1fr; gap: 12px; }
   .dashboard-grid > .card { min-height: 0; }
+  .analysis-columns, .recommendation-grid { grid-template-columns: 1fr; }
+  .interview-setup { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .interview-setup > .button { grid-column: 1 / -1; }
 }
 
 @media (max-width: 760px) {
@@ -466,6 +542,12 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   .composer-footer { align-items: flex-start; flex-direction: column; }
   .composer-footer .button { align-self: flex-end; }
   .section-subheading { align-items: flex-start; flex-direction: column; }
+  .ai-generator-controls { grid-template-columns: 1fr; }
+  .plan-week { grid-template-columns: 1fr; gap: 6px; }
+  .answer-editor, .answer-feedback { margin-left: 0; }
+  .feedback-columns { grid-template-columns: 1fr; }
+  .interview-setup { grid-template-columns: 1fr; }
+  .readiness-footer { align-items: flex-start; flex-direction: column; }
 }
 
 @media (max-width: 390px) {

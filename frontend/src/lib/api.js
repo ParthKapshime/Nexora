@@ -37,7 +37,12 @@ export function getErrorMessage(error) {
     }
     const message = error.response.data?.error
     if (typeof message === 'string' && error.response.status < 500) return message
-    if (error.response.status === 503) return 'This feature is temporarily unavailable. Please try again later.'
+    if (error.response.status === 503) {
+      if (typeof message === 'string' && /not configured/i.test(message)) {
+        return 'Hugging Face AI is not configured on the server. Add HF_TOKEN to the backend environment and try again.'
+      }
+      return 'The AI provider is temporarily unavailable. Please try again later.'
+    }
     if (error.response.status >= 500) return 'The server could not complete that request. Try again shortly.'
   }
   return error instanceof Error && error.message === 'Unexpected AI response'
@@ -83,8 +88,15 @@ export const resourcesApi = {
   remove: (kind, id) => api.delete(`/${kind}/${id}`),
 }
 
+const AI_TIMEOUT = 60_000
+
 export const aiApi = {
-  complete: (messages) => api.post('/ai/chat/completions', { messages }),
+  complete: (messages) => api.post('/ai/chat/completions', { messages }, { timeout: AI_TIMEOUT }),
+  analyzeSkills: () => api.post('/ai/analyze-skills', {}, { timeout: AI_TIMEOUT }),
+  generateRoadmap: (payload = {}) => api.post('/ai/roadmap/generate', payload, { timeout: AI_TIMEOUT }),
+  recommendProjects: (payload = {}) => api.post('/ai/projects/recommend', payload, { timeout: AI_TIMEOUT }),
+  startInterview: (payload) => api.post('/ai/interviews/start', payload, { timeout: AI_TIMEOUT }),
+  answerInterview: (id, payload) => api.post(`/ai/interviews/${id}/answer`, payload, { timeout: AI_TIMEOUT }),
 }
 
 export default api

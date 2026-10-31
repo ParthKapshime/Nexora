@@ -14,11 +14,13 @@ test('session restoration reports backend unavailability and allows retry', asyn
   await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible()
 })
 
-test('empty interview records show an honest empty state and unsupported capability notice', async ({ page }) => {
+test('empty interview records show an honest empty state and AI practice setup', async ({ page }) => {
   await page.addInitScript(() => window.sessionStorage.setItem('nexora.auth.token', 'e2e-only-test-token'))
   await page.route('**/api/auth/me', (route) => route.fulfill({ json: { user: { id: 'fixture-user', email: 'demo@example.test' } } }))
   await page.route('**/api/interviews', (route) => route.fulfill({ json: { items: [] } }))
+  await page.route('**/api/profile', (route) => route.fulfill({ json: { profile: { targetRole: 'UX designer' } } }))
   await page.goto('/interviews')
   await expect(page.getByRole('heading', { name: 'No interview sessions' })).toBeVisible()
-  await expect(page.getByText(/Live interview practice isn.t available yet/)).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Start a practice interview' })).toBeVisible()
+  await expect(page.getByLabel('Target role')).toHaveValue('UX designer')
 })

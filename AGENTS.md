@@ -4,7 +4,7 @@
 
 Nexora is an AI-powered career guidance and skill-development platform. Preserve the modular monolith architecture and existing repository conventions. Do not introduce microservices, paid APIs or services, or new technologies without a strong reason and explicit approval.
 
-Ollama local LLM is the only AI provider. The Express backend communicates with Ollama. The frontend must communicate with the Express backend through REST APIs and must never connect directly to Ollama. Do not add Gemini or OpenAI API integrations, or silently fall back to a hosted model.
+Hugging Face Inference Providers through the OpenAI-compatible router is the only AI provider. The Express backend communicates with Hugging Face using server-side credentials. The frontend must communicate with the Express backend through REST APIs and must never connect directly to Hugging Face. Do not add Gemini, OpenAI-hosted, or local Ollama integrations, or silently fall back to another provider.
 
 ## Technology stack
 
@@ -130,7 +130,7 @@ Show recommended portfolio projects with descriptions, required technologies, di
 
 ### AI mock interviews
 
-Support interview type, target role, and difficulty selection; AI-generated questions; answer submission; interview progress; feedback and evaluation after answers; and access to previous interview sessions. AI requests must follow the Ollama-through-Express boundary above.
+Support interview type, target role, and difficulty selection; AI-generated questions; answer submission; interview progress; feedback and evaluation after answers; and access to previous interview sessions. AI requests must follow the Hugging Face-through-Express boundary above.
 
 ### Job application tracker
 
@@ -168,9 +168,9 @@ Keep components maintainable. Separate UI from business logic and API communicat
 - Do not fake functionality or claim an operation succeeded when it did not.
 - Do not hardcode AI-generated results as actual user data.
 - Keep frontend API communication separate from UI components.
-- The frontend calls the Express backend through REST APIs; only the backend accesses Ollama.
+- The frontend calls the Express backend through REST APIs; only the backend accesses Hugging Face.
 - Validate and authorize requests on the server. Hash passwords with bcrypt. Keep secrets out of source code, browser bundles, logs, and user-facing errors.
-- Handle Ollama unavailability, timeouts, malformed responses, and model errors explicitly. Never silently change providers.
+- Handle Hugging Face unavailability, timeouts, malformed responses, and model errors explicitly. Never silently change providers.
 
 ## Verification and change control
 

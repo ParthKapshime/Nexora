@@ -332,6 +332,7 @@
     "/api/profile/resume": {
       "post": {
         "summary": "Upload PDF resume (max 5 MiB)",
+        "description": "Validates PDF type and signature, extracts selectable text with pdfjs-dist (max 30 pages, 50000 stored characters), and stores the file privately. Encrypted, unreadable, or over-limit PDFs are rejected. Scanned PDFs are accepted with parseStatus \"no_text\".",
         "security": [
           {
             "bearerAuth": []
@@ -358,10 +359,44 @@
         },
         "responses": {
           "201": {
-            "description": "Resume stored privately"
+            "description": "Resume stored privately with pageCount and parseStatus",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "resume": {
+                      "type": "object",
+                      "properties": {
+                        "originalName": {
+                          "type": "string"
+                        },
+                        "size": {
+                          "type": "integer"
+                        },
+                        "uploadedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "pageCount": {
+                          "type": "integer"
+                        },
+                        "parseStatus": {
+                          "type": "string",
+                          "enum": [
+                            "processed",
+                            "no_text"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           },
           "400": {
-            "description": "Invalid PDF"
+            "description": "Invalid, unreadable, encrypted, or over-limit PDF"
           },
           "401": {
             "description": "Authentication required"
@@ -1028,7 +1063,7 @@
     },
     "/api/ai": {
       "get": {
-        "summary": "List available AI endpoint",
+        "summary": "List available AI features",
         "security": [
           {
             "bearerAuth": []
@@ -1036,7 +1071,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Provider, model and chat completion endpoint"
+            "description": "Provider, model and available feature endpoints"
           },
           "401": {
             "description": "Authentication required"
@@ -1192,60 +1227,255 @@
     },
     "/api/ai/analyze-skills": {
       "post": {
-        "summary": "AI skill analysis (currently disabled)",
+        "summary": "Analyze saved skills and career readiness",
+        "description": "Uses the authenticated user's saved target role and skills only. Returns an AI-assisted readiness estimate, category scores, strengths, gaps, and next steps, and stores the readiness score on the profile. Requires HF_TOKEN.",
         "security": [
           {
             "bearerAuth": []
           }
         ],
         "responses": {
+          "200": {
+            "description": "Skill analysis and readiness estimate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "analysis": {
+                      "type": "object"
+                    },
+                    "readiness": {
+                      "type": "object",
+                      "properties": {
+                        "score": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100
+                        },
+                        "summary": {
+                          "type": "string"
+                        },
+                        "targetRole": {
+                          "type": "string"
+                        },
+                        "updatedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Target role or skills missing"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "429": {
+            "description": "Rate limit reached"
+          },
+          "502": {
+            "description": "Provider returned an unreadable response"
+          },
           "503": {
-            "description": "AI functionality is currently unavailable"
+            "description": "Provider not configured or unavailable"
+          },
+          "504": {
+            "description": "Provider timeout"
           }
         }
       }
     },
     "/api/ai/roadmap/generate": {
       "post": {
-        "summary": "AI roadmap generation (currently disabled)",
+        "summary": "Generate a personalized learning roadmap",
+        "description": "Uses the authenticated user's saved target role and skills. Returns weekly milestones and tasks. Requires HF_TOKEN.",
         "security": [
           {
             "bearerAuth": []
           }
         ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "weeks": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 12,
+                    "default": 4
+                  },
+                  "hoursPerWeek": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 40,
+                    "default": 5
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
         "responses": {
+          "200": {
+            "description": "Generated roadmap"
+          },
+          "400": {
+            "description": "Invalid request or missing profile data"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "429": {
+            "description": "Rate limit reached"
+          },
+          "502": {
+            "description": "Provider returned an unreadable response"
+          },
           "503": {
-            "description": "AI functionality is currently unavailable"
+            "description": "Provider not configured or unavailable"
+          },
+          "504": {
+            "description": "Provider timeout"
           }
         }
       }
     },
     "/api/ai/projects/recommend": {
       "post": {
-        "summary": "AI project recommendations (currently disabled)",
+        "summary": "Recommend portfolio projects",
+        "description": "Uses the authenticated user's saved target role and skills. Returns portfolio project recommendations. Requires HF_TOKEN.",
         "security": [
           {
             "bearerAuth": []
           }
         ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "count": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 6,
+                    "default": 3
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
         "responses": {
+          "200": {
+            "description": "Project recommendations"
+          },
+          "400": {
+            "description": "Invalid request or missing profile data"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "429": {
+            "description": "Rate limit reached"
+          },
+          "502": {
+            "description": "Provider returned an unreadable response"
+          },
           "503": {
-            "description": "AI functionality is currently unavailable"
+            "description": "Provider not configured or unavailable"
+          },
+          "504": {
+            "description": "Provider timeout"
           }
         }
       }
     },
     "/api/ai/interviews/start": {
       "post": {
-        "summary": "AI interview generation (currently disabled)",
+        "summary": "Start a mock interview",
+        "description": "Generates interview questions from the saved profile and the requested type, role, and difficulty, then stores the session in the user's interview records. Requires HF_TOKEN.",
         "security": [
           {
             "bearerAuth": []
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "type",
+                  "difficulty"
+                ],
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "Behavioral",
+                      "Technical",
+                      "Situational"
+                    ]
+                  },
+                  "difficulty": {
+                    "type": "string",
+                    "enum": [
+                      "Entry",
+                      "Intermediate",
+                      "Advanced"
+                    ]
+                  },
+                  "targetRole": {
+                    "type": "string",
+                    "maxLength": 120
+                  },
+                  "questionCount": {
+                    "type": "integer",
+                    "minimum": 3,
+                    "maximum": 8,
+                    "default": 5
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
         "responses": {
+          "201": {
+            "description": "Interview session with generated questions"
+          },
+          "400": {
+            "description": "Invalid request or missing target role"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "429": {
+            "description": "Rate limit reached"
+          },
+          "502": {
+            "description": "Provider returned an unreadable response"
+          },
           "503": {
-            "description": "AI functionality is currently unavailable"
+            "description": "Provider not configured or unavailable"
+          },
+          "504": {
+            "description": "Provider timeout"
           }
         }
       }
@@ -1257,20 +1487,72 @@
           "in": "path",
           "required": true,
           "schema": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{24}$"
           }
         }
       ],
       "post": {
-        "summary": "AI interview evaluation (currently disabled)",
+        "summary": "Evaluate a mock interview answer",
+        "description": "Evaluates one answer in an owner-scoped stored interview session and records the feedback. Requires HF_TOKEN.",
         "security": [
           {
             "bearerAuth": []
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "questionIndex",
+                  "answer"
+                ],
+                "properties": {
+                  "questionIndex": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "answer": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 8000
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
         "responses": {
+          "200": {
+            "description": "Answer evaluation and interview progress"
+          },
+          "400": {
+            "description": "Invalid request or question index"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "404": {
+            "description": "Interview session not found"
+          },
+          "409": {
+            "description": "Question already answered"
+          },
+          "429": {
+            "description": "Rate limit reached"
+          },
+          "502": {
+            "description": "Provider returned an unreadable response"
+          },
           "503": {
-            "description": "AI functionality is currently unavailable"
+            "description": "Provider not configured or unavailable"
+          },
+          "504": {
+            "description": "Provider timeout"
           }
         }
       }

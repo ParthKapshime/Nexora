@@ -4,6 +4,7 @@ const { User } = require('../models/User');
 const { ApiError } = require('../utils/apiError');
 const asyncHandler = require('../utils/asyncHandler');
 const { resumeDirectory } = require('../services/resumeService');
+const { extractPdfText } = require('../services/resumeParser');
 
 const upload = asyncHandler(async (req, res) => {
   if (!req.file) throw new ApiError(400, 'A PDF resume is required');
@@ -16,6 +17,14 @@ const upload = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'Uploaded file is not a valid PDF');
   }
 
+  let parsed;
+  try {
+    parsed = await extractPdfText(req.file.path);
+  } catch (error) {
+    await fs.unlink(req.file.path).catch(() => {});
+    throw error;
+  }
+
   const user = await User.findById(req.user.id).select('+profile.resume.storedName');
   if (!user) {
     await fs.unlink(req.file.path).catch(() => {});
@@ -26,7 +35,11 @@ const upload = asyncHandler(async (req, res) => {
     originalName: path.basename(req.file.originalname.replace(/\\/g, '/')).slice(0, 255),
     storedName: req.file.filename,
     size: req.file.size,
-    uploadedAt: new Date()
+    uploadedAt: new Date(),
+    pageCount: parsed.pageCount,
+    parseStatus: parsed.parseStatus,
+    parsedAt: new Date(),
+    text: parsed.text
   };
   try {
     await user.save();
@@ -37,7 +50,13 @@ const upload = asyncHandler(async (req, res) => {
   if (oldName && /^[a-f\d-]+\.pdf$/i.test(oldName)) {
     await fs.unlink(path.join(resumeDirectory(req.app.locals.env.UPLOAD_DIR), oldName)).catch(() => {});
   }
-  res.status(201).json({ resume: { originalName: user.profile.resume.originalName, size: user.profile.resume.size, uploadedAt: user.profile.resume.uploadedAt } });
+  res.status(201).json({ resume: {
+    originalName: user.profile.resume.originalName,
+    size: user.profile.resume.size,
+    uploadedAt: user.profile.resume.uploadedAt,
+    pageCount: user.profile.resume.pageCount,
+    parseStatus: user.profile.resume.parseStatus
+  } });
 });
 
 const remove = asyncHandler(async (req, res) => {

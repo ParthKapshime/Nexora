@@ -17,6 +17,28 @@ const otherUserId = '507f191e810c19729de860ea';
 const token = jwt.sign({}, secret, { subject: userId, algorithm: 'HS256', expiresIn: 300 });
 const app = createApp({ NODE_ENV: 'test', PORT: 5000, CORS_ORIGINS: 'http://localhost:3000', JWT_SECRET: secret });
 
+function buildPdf(text = 'Hello resume text') {
+  const stream = `BT /F1 12 Tf 72 720 Td (${text}) Tj ET`;
+  const objects = [
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>',
+    `<< /Length ${Buffer.byteLength(stream)} >>\nstream\n${stream}\nendstream`,
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'
+  ];
+  let pdf = '%PDF-1.4\n';
+  const offsets = [];
+  objects.forEach((object, index) => {
+    offsets.push(Buffer.byteLength(pdf));
+    pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
+  });
+  const xref = Buffer.byteLength(pdf);
+  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  for (const offset of offsets) pdf += `${String(offset).padStart(10, '0')} 00000 n \n`;
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
+  return Buffer.from(pdf);
+}
+
 function mockAuthUser() {
   const original = User.findById;
   const doc = { id: userId, _id: userId, email: 'test@example.invalid', profile: { fullName: 'Test User' }, createdAt: new Date(), updatedAt: new Date() };
@@ -272,7 +294,56 @@ test('resume endpoint checks PDF file contents, not only the extension', async (
   }
 });
 
-test('valid PDF resume upload stores a private file and returns safe metadata', async () => {
+test('valid PDF resume upload extracts text, stores a private file, and returns safe metadata', async () => {
+  const uploadDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'nexora-upload-test-'));
+  const isolatedApp = createApp({ NODE_ENV: 'test', PORT: 5000, CORS_ORIGINS: 'http://localhost:3000', JWT_SECRET: secret, UPLOAD_DIR: uploadDirectory });
+  const originalFindById = User.findById;
+  let calls = 0;
+  const doc = { id: userId, profile: {}, async save() {} };
+  User.findById = () => ({ select: async () => (++calls === 1 ? { id: userId, email: 'test@example.invalid' } : doc) });
+  const pdf = buildPdf('Senior designer with research experience');
+  try {
+    const response = await request(isolatedApp).post('/api/profile/resume')
+      .set('Authorization', `Bearer ${token}`)
+      .attach('resume', pdf, { filename: 'resume.pdf', contentType: 'application/pdf' })
+      .expect(201);
+    assert.equal(response.body.resume.originalName, 'resume.pdf');
+    assert.equal(response.body.resume.size, pdf.length);
+    assert.equal(response.body.resume.storedName, undefined);
+    assert.equal(response.body.resume.text, undefined);
+    assert.equal(response.body.resume.parseStatus, 'processed');
+    assert.equal(response.body.resume.pageCount, 1);
+    assert.match(doc.profile.resume.text, /Senior designer with research experience/);
+    assert.equal(doc.profile.resume.parseStatus, 'processed');
+    const names = await fs.readdir(uploadDirectory);
+    assert.equal(names.length, 1);
+    assert.match(names[0], /^[a-f\d-]+\.pdf$/i);
+  } finally {
+    User.findById = originalFindById;
+    for (const name of await fs.readdir(uploadDirectory)) await fs.unlink(path.join(uploadDirectory, name));
+    await fs.rmdir(uploadDirectory).catch(() => {});
+  }
+});
+
+test('resume upload rejects a PDF with unreadable contents and removes the temp file', async () => {
+  const uploadDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'nexora-upload-test-'));
+  const isolatedApp = createApp({ NODE_ENV: 'test', PORT: 5000, CORS_ORIGINS: 'http://localhost:3000', JWT_SECRET: secret, UPLOAD_DIR: uploadDirectory });
+  const originalFindById = User.findById;
+  User.findById = () => ({ select: async () => ({ id: userId, email: 'test@example.invalid', profile: {} }) });
+  try {
+    const response = await request(isolatedApp).post('/api/profile/resume')
+      .set('Authorization', `Bearer ${token}`)
+      .attach('resume', Buffer.from('%PDF-1.7\nnot a readable document\n%%EOF'), { filename: 'resume.pdf', contentType: 'application/pdf' })
+      .expect(400);
+    assert.match(response.body.error, /could not be read/i);
+    assert.deepEqual(await fs.readdir(uploadDirectory), []);
+  } finally {
+    User.findById = originalFindById;
+    await fs.rmdir(uploadDirectory).catch(() => {});
+  }
+});
+
+test('resume upload accepts a PDF without selectable text and reports the status', async () => {
   const uploadDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'nexora-upload-test-'));
   const isolatedApp = createApp({ NODE_ENV: 'test', PORT: 5000, CORS_ORIGINS: 'http://localhost:3000', JWT_SECRET: secret, UPLOAD_DIR: uploadDirectory });
   const originalFindById = User.findById;
@@ -282,14 +353,11 @@ test('valid PDF resume upload stores a private file and returns safe metadata', 
   try {
     const response = await request(isolatedApp).post('/api/profile/resume')
       .set('Authorization', `Bearer ${token}`)
-      .attach('resume', Buffer.from('%PDF-1.7\nminimal test document\n%%EOF'), { filename: 'resume.pdf', contentType: 'application/pdf' })
+      .attach('resume', buildPdf(''), { filename: 'scanned.pdf', contentType: 'application/pdf' })
       .expect(201);
-    assert.equal(response.body.resume.originalName, 'resume.pdf');
-    assert.equal(response.body.resume.size, 36);
-    assert.equal(response.body.resume.storedName, undefined);
-    const names = await fs.readdir(uploadDirectory);
-    assert.equal(names.length, 1);
-    assert.match(names[0], /^[a-f\d-]+\.pdf$/i);
+    assert.equal(response.body.resume.parseStatus, 'no_text');
+    assert.equal(doc.profile.resume.text, '');
+    assert.equal(doc.profile.resume.parseStatus, 'no_text');
   } finally {
     User.findById = originalFindById;
     for (const name of await fs.readdir(uploadDirectory)) await fs.unlink(path.join(uploadDirectory, name));
@@ -314,29 +382,4 @@ test('resume deletion is scoped to the authenticated user and removes stored fil
     for (const name of await fs.readdir(uploadDirectory)) await fs.unlink(path.join(uploadDirectory, name));
     await fs.rmdir(uploadDirectory).catch(() => {});
   }
-});
-
-test('disabled AI action returns controlled 503 for an authenticated user', async () => {
-  const restoreUser = mockAuthUser();
-  try {
-    const response = await request(app).post('/api/ai/analyze-skills')
-      .set('Authorization', `Bearer ${token}`).send({ targetRole: 'ignored' }).expect(503);
-    assert.equal(response.body.error, 'AI functionality is currently unavailable');
-  } finally {
-    restoreUser();
-  }
-});
-
-test('all AI-dependent endpoints remain unavailable and do not generate output', async () => {
-  const restoreUser = mockAuthUser();
-  try {
-    const actions = [
-      ['/api/ai/analyze-skills', {}], ['/api/ai/roadmap/generate', {}], ['/api/ai/projects/recommend', {}],
-      ['/api/ai/interviews/start', {}], ['/api/ai/interviews/507f1f77bcf86cd799439012/answer', { answer: 'test' }]
-    ];
-    for (const [path, body] of actions) {
-      const response = await request(app).post(path).set('Authorization', `Bearer ${token}`).send(body).expect(503);
-      assert.deepEqual(response.body.error, 'AI functionality is currently unavailable');
-    }
-  } finally { restoreUser(); }
 });
