@@ -19,7 +19,7 @@ const spec = {
     schemas: {
       Error: { type: 'object', properties: { error: { type: 'string' }, requestId: { type: 'string' } } },
       AuthInput: { type: 'object', required: ['email', 'password'], properties: { email: { type: 'string', format: 'email' }, password: { type: 'string', minLength: 10, maxLength: 128, description: 'UTF-8 length must not exceed bcrypt’s 72-byte limit' } } },
-      AuthResponse: { type: 'object', properties: { user: { type: 'object', properties: { id: { type: 'string' }, email: { type: 'string', format: 'email' }, profile: { type: 'object' } } }, token: { type: 'string' }, tokenType: { type: 'string', example: 'Bearer' }, expiresIn: { type: 'integer', example: 3600 } } },
+      AuthResponse: { type: 'object', properties: { user: { type: 'object', properties: { id: { type: 'string' }, email: { type: 'string', format: 'email' }, profile: { type: 'object' } } }, token: { type: 'string' }, tokenType: { type: 'string', example: 'Bearer' }, expiresIn: { type: 'integer', example: 300, description: 'Access token lifetime in seconds' } } },
       ApplicationInput: { type: 'object', required: ['company', 'jobTitle', 'appliedAt'], properties: { company: { type: 'string' }, jobTitle: { type: 'string' }, appliedAt: { type: 'string', format: 'date-time' }, status: { type: 'string', enum: ['Applied', 'Screening', 'Interview', 'Offer', 'Rejected'] }, nextAction: { type: 'string' }, followUpAt: { type: 'string', format: 'date-time' }, notes: { type: 'string' } } },
       ResourceInput: { type: 'object', required: ['data'], properties: { data: { type: 'object', additionalProperties: true } } }
     }

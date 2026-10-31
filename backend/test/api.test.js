@@ -62,7 +62,7 @@ test('private routes reject unauthenticated requests', async () => {
 
 test('AI endpoint discovery and OpenAPI document the chat completion route', async () => {
   const restoreUser = mockAuthUser();
-  const token = jwt.sign({}, app.locals.env.JWT_SECRET, { subject: '507f1f77bcf86cd799439011', expiresIn: '1h' });
+  const token = jwt.sign({}, app.locals.env.JWT_SECRET, { subject: '507f1f77bcf86cd799439011', expiresIn: 300 });
   try {
     const endpoint = await request(app).get('/api/ai').set('Authorization', `Bearer ${token}`).expect(200);
     assert.equal(endpoint.body.chatCompletions, '/api/ai/chat/completions');
@@ -75,7 +75,7 @@ test('AI endpoint discovery and OpenAPI document the chat completion route', asy
 
 test('chat completion validates HTTPS-only image URLs before provider calls', async () => {
   const restoreUser = mockAuthUser();
-  const token = jwt.sign({}, app.locals.env.JWT_SECRET, { subject: '507f1f77bcf86cd799439011', expiresIn: '1h' });
+  const token = jwt.sign({}, app.locals.env.JWT_SECRET, { subject: '507f1f77bcf86cd799439011', expiresIn: 300 });
   try {
     await request(app).post('/api/ai/chat/completions')
       .set('Authorization', `Bearer ${token}`)

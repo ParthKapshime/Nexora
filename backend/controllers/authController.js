@@ -3,6 +3,8 @@ const jwt = require('jsonwebtoken');
 const { User } = require('../models/User');
 const { ApiError } = require('../utils/apiError');
 
+const ACCESS_TOKEN_TTL_SECONDS = 300;
+
 function publicUser(user) {
   return {
     id: user.id,
@@ -15,7 +17,7 @@ function publicUser(user) {
 
 function issueToken(user, secret) {
   if (!secret) throw new ApiError(503, 'Authentication is not configured');
-  return jwt.sign({}, secret, { subject: user.id, algorithm: 'HS256', expiresIn: '1h' });
+  return jwt.sign({}, secret, { subject: user.id, algorithm: 'HS256', expiresIn: ACCESS_TOKEN_TTL_SECONDS });
 }
 
 async function register(req, res) {
@@ -30,7 +32,7 @@ async function register(req, res) {
     throw error;
   }
   const token = issueToken(user, req.app.locals.env.JWT_SECRET);
-  res.status(201).json({ user: publicUser(user), token, tokenType: 'Bearer', expiresIn: 3600 });
+  res.status(201).json({ user: publicUser(user), token, tokenType: 'Bearer', expiresIn: ACCESS_TOKEN_TTL_SECONDS });
 }
 
 async function login(req, res) {
@@ -38,7 +40,7 @@ async function login(req, res) {
   const user = await User.findOne({ email }).select('+passwordHash');
   if (!user || !(await bcrypt.compare(password, user.passwordHash))) throw new ApiError(401, 'Invalid email or password');
   const token = issueToken(user, req.app.locals.env.JWT_SECRET);
-  res.json({ user: publicUser(user), token, tokenType: 'Bearer', expiresIn: 3600 });
+  res.json({ user: publicUser(user), token, tokenType: 'Bearer', expiresIn: ACCESS_TOKEN_TTL_SECONDS });
 }
 
 module.exports = { register, login, publicUser };

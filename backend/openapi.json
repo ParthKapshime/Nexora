@@ -77,7 +77,8 @@
           },
           "expiresIn": {
             "type": "integer",
-            "example": 3600
+            "example": 300,
+            "description": "Access token lifetime in seconds"
           }
         }
       },

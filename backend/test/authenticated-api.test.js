@@ -14,7 +14,7 @@ const { UserResource } = require('../models/UserResource');
 const secret = 'test-only-secret-with-at-least-32-characters';
 const userId = '507f1f77bcf86cd799439011';
 const otherUserId = '507f191e810c19729de860ea';
-const token = jwt.sign({}, secret, { subject: userId, algorithm: 'HS256', expiresIn: '1h' });
+const token = jwt.sign({}, secret, { subject: userId, algorithm: 'HS256', expiresIn: 300 });
 const app = createApp({ NODE_ENV: 'test', PORT: 5000, CORS_ORIGINS: 'http://localhost:3000', JWT_SECRET: secret });
 
 function mockAuthUser() {
@@ -27,7 +27,7 @@ function mockAuthUser() {
   return () => { User.findById = original; };
 }
 
-test('registration hashes password and never returns the hash', async () => {
+test('registration hashes password, omits the hash, and issues a five-minute JWT', async () => {
   const originalExists = User.exists;
   const originalCreate = User.create;
   let saved;
@@ -44,13 +44,16 @@ test('registration hashes password and never returns the hash', async () => {
     assert.equal(response.body.user.passwordHash, undefined);
     assert.equal(response.body.user.email, 'test@example.invalid');
     assert.equal(response.body.tokenType, 'Bearer');
+    assert.equal(response.body.expiresIn, 300);
+    const claims = jwt.verify(response.body.token, secret, { algorithms: ['HS256'] });
+    assert.equal(claims.exp - claims.iat, 300);
   } finally {
     User.exists = originalExists;
     User.create = originalCreate;
   }
 });
 
-test('login verifies passwords, uses a generic failure, and issues a one-hour JWT', async () => {
+test('login verifies passwords, uses a generic failure, and issues a five-minute JWT', async () => {
   const originalFindOne = User.findOne;
   const password = 'SyntheticLogin@2026';
   const passwordHash = await bcrypt.hash(password, 4);
@@ -60,15 +63,21 @@ test('login verifies passwords, uses a generic failure, and issues a one-hour JW
     const success = await request(app).post('/api/auth/login').send({ email: 'LOGIN@example.invalid', password }).expect(200);
     assert.equal(success.body.user.email, account.email);
     assert.equal(success.body.user.passwordHash, undefined);
-    assert.equal(success.body.expiresIn, 3600);
+    assert.equal(success.body.expiresIn, 300);
     const claims = jwt.verify(success.body.token, secret, { algorithms: ['HS256'] });
     assert.equal(claims.sub, userId);
+    assert.equal(claims.exp - claims.iat, 300);
     assert.ok(claims.exp > Math.floor(Date.now() / 1000));
 
     const wrongPassword = await request(app).post('/api/auth/login').send({ email: account.email, password: `${password}wrong` }).expect(401);
     const unknownAccount = await request(app).post('/api/auth/login').send({ email: 'unknown@example.invalid', password }).expect(401);
     assert.equal(wrongPassword.body.error, unknownAccount.body.error);
   } finally { User.findOne = originalFindOne; }
+});
+
+test('protected routes reject an expired JWT', async () => {
+  const expiredToken = jwt.sign({}, secret, { subject: userId, algorithm: 'HS256', expiresIn: -1 });
+  await request(app).get('/api/auth/me').set('Authorization', `Bearer ${expiredToken}`).expect(401);
 });
 
 test('profile get returns only the authenticated user’s profile', async () => {

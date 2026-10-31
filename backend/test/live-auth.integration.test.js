@@ -71,10 +71,10 @@ test('live MongoDB authentication, profile and ownership integration', { skip: !
     const tokenB = loginB.body.token;
     const payload = jwt.verify(tokenA, env.JWT_SECRET, { algorithms: ['HS256'] });
     assert.ok(payload.exp > Math.floor(Date.now() / 1000));
-    assert.ok(payload.exp <= Math.floor(Date.now() / 1000) + 3600);
-    assert.equal(loginA.body.expiresIn, 3600);
+    assert.equal(payload.exp - payload.iat, 300);
+    assert.equal(loginA.body.expiresIn, 300);
     assert.equal(loginA.body.user.passwordHash, undefined);
-    results.push({ scenario: 'JWT signature and one-hour expiration', status: 'verified' });
+    results.push({ scenario: 'JWT signature and five-minute expiration', status: 'verified' });
     await expectStatus('login with incorrect password', request(app).post('/api/auth/login').send({ email: accountEmails[0], password: `${password}wrong` }), 401);
     await expectStatus('login with unregistered email', request(app).post('/api/auth/login').send({ email: 'unregistered@example.com', password }), 401);
 
