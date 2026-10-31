@@ -1,0 +1,11 @@
+const express = require('express');
+const { requireAuth } = require('../middleware/auth');
+const { unavailable } = require('../controllers/aiController');
+const router = express.Router();
+router.use(requireAuth);
+router.post('/analyze-skills', unavailable);
+router.post('/roadmap/generate', unavailable);
+router.post('/projects/recommend', unavailable);
+router.post('/interviews/start', unavailable);
+router.post('/interviews/:id/answer', unavailable);
+module.exports = router;

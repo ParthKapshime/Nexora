@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nexora Backend Decision Log</title>
+  <style>
+    :root { color-scheme: light; font: 16px/1.6 system-ui, sans-serif; color: #302923; background: #fffcf7; }
+    body { max-width: 1000px; margin: 2rem auto; padding: 0 1.25rem 3rem; }
+    h1, h2 { line-height: 1.2; } section { margin: 1.5rem 0; padding: 1rem 1.25rem; background: white; border: 1px solid #f0ece7; border-radius: 12px; }
+    table { width: 100%; border-collapse: collapse; } th, td { text-align: left; vertical-align: top; padding: .55rem; border-bottom: 1px solid #f0ece7; }
+    th { width: 25%; }
+  </style>
+</head>
+<body>
+  <h1>Nexora backend decision log</h1>
+  <p>Updated 2026-10-31. No credentials, passwords, tokens, or private configuration values are recorded here.</p>
+
+  <section>
+    <h2>Requirements supplied by the user</h2>
+    <table><tbody>
+      <tr><th>Product</th><td>Nexora, an AI-powered career guidance and skill-development platform. <code>AGENTS.md</code> is the primary project guidance.</td></tr>
+      <tr><th>Architecture</th><td>Backend modular monolith using existing config, controllers, middleware, models, routes and services folders. No frontend in this phase.</td></tr>
+      <tr><th>Stack</th><td>Node.js, Express, MongoDB Atlas/Mongoose, REST, JWT, bcrypt. The backend prompt also explicitly specifies Zod and OpenAPI/Swagger.</td></tr>
+      <tr><th>Database</th><td>Atlas database name is exactly <code>Nexora</code>. The pasted URI is a template; connection not attempted. Rotate the password exposed in the prompt before use.</td></tr>
+      <tr><th>Server</th><td>Port 5000; local development URL <code>http://localhost:5000</code>.</td></tr>
+      <tr><th>AI/external data</th><td>Latest instruction says keep all AI inactive. No LLM or external API calls or invented recommendations. <code>AGENTS.md</code> allows only Ollama if AI is approved later.</td></tr>
+      <tr><th>Security/docs</th><td>HTTPS readiness and backend security are required. Maintain <code>test.md</code>, <code>error.md</code> and this file.</td></tr>
+      <tr><th>Git</th><td>User approved initialization and remote configuration in this folder. Root repo is on <code>master</code>, remote named <code>origin</code> points to the supplied Nexora URL. Remote currently advertises no branches; no commit or push yet.</td></tr>
+    </tbody></table>
+  </section>
+
+  <section>
+    <h2>Technical decisions</h2>
+    <table><thead><tr><th>Decision</th><th>Reason and alternatives</th><th>Approval</th></tr></thead><tbody>
+      <tr><td>Use CommonJS JavaScript and Express</td><td>Matches existing <code>.js</code> placeholders and the approved backend stack. No language or framework change.</td><td>Explicitly specified.</td></tr>
+      <tr><td>Use MongoDB/Mongoose with database <code>Nexora</code></td><td>Connection is environment-driven and enforces the required database path. No credentials are hardcoded. Real connection is blocked pending a rotated URI in ignored local <code>backend/.env</code>.</td><td>Explicitly specified.</td></tr>
+      <tr><td>Authentication</td><td>bcryptjs cost 12, HS256 bearer JWT with one-hour expiry, generic invalid-login response, and owner-scoped queries. JWT signing secret is required locally and in production.</td><td>JWT and bcrypt explicitly specified.</td></tr>
+      <tr><td>Zod 4.6.7 validation</td><td>Validates bodies, parameters and queries. Initial install audit identified a high severity issue in Zod 3, so the dependency was upgraded and re-audited.</td><td>Zod explicitly specified; secure version selected during implementation.</td></tr>
+      <tr><td>HTTP security</td><td>Helmet/CSP, production HSTS, allowlist CORS, body size cap, Mongo operator sanitization, global/auth/upload rate limits, private upload storage, request IDs, and safe errors. In-process rate limits need a shared store before multi-instance deployment.</td><td>Security protections explicitly required; shared store depends on deployment setup.</td></tr>
+      <tr><td>Resume upload</td><td>PDF MIME/extension allowlist, 5 MiB cap, server-generated names, PDF signature check, and private ignored storage. Text extraction is not included because no parser was selected.</td><td>Secure upload explicitly required; parser choice remains pending.</td></tr>
+      <tr><td>User data resources</td><td>Skills, roadmaps, projects and interview records store only authenticated-user supplied content. Assessment, recommendation and AI generation endpoints return 503 rather than fabricate results.</td><td>User-data modules specified; AI inactivity explicitly specified.</td></tr>
+      <tr><td>AI provider interface</td><td>Only a generic inactive service remains. Empty Hugging Face, Meta Llama, Ollama and provider-config placeholders were removed. No calls are made. Any future provider must follow <code>AGENTS.md</code> (Ollama only).</td><td>Explicitly specified.</td></tr>
+      <tr><td>OpenAPI/Swagger</td><td>Canonical OpenAPI 3 spec is served at <code>/openapi.json</code>, Swagger UI at <code>/api-docs</code>, and generated static JSON at <code>backend/openapi.json</code> for Thunder Client import.</td><td>Explicitly requested.</td></tr>
+      <tr><td>Git repository setup</td><td>Root Git repository and supplied origin were configured after the user approved it. An empty nested <code>backend/.git</code> (no refs, objects, commits or remote) was preserved under an ignored backup name to prevent accidental gitlink staging.</td><td>Approved by user.</td></tr>
+      <tr><td>HTTPS</td><td>Local development stays HTTP. HSTS is enabled in production mode; actual TLS and HTTP-to-HTTPS redirect require a future deployment reverse proxy/certificate.</td><td>HTTPS readiness explicitly required; no deployment target selected.</td></tr>
+    </tbody></table>
+  </section>
+
+  <section>
+    <h2>Remaining blockers and pending decisions</h2>
+    <ul>
+      <li>Rotate the MongoDB password exposed in the pasted prompt, then add the replacement URI and a 32+ character JWT secret to local ignored <code>backend/.env</code>. Do not send credentials in chat.</li>
+      <li>Decide whether resume text extraction is needed for this phase; it requires selecting a PDF parser.</li>
+      <li>Before scaling beyond one server process, configure a shared rate-limit store.</li>
+      <li>Thunder Client tests remain unrun. Import <code>backend/openapi.json</code> after local environment configuration.</li>
+      <li>The remote advertises no branches. Push status cannot be verified until a commit is made and remote authentication is available.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>ECC skills</h2>
+    <p>Read and applied: <code>backend-patterns</code>, <code>api-design</code>, <code>security-review</code>, <code>error-handling</code>. Inspected but not used for a migration: <code>database-migrations</code>. The installed <code>security-scan</code> targets Claude configuration, which this project does not contain, so it was not run. No ECC agent/workflow or multi-agent delegation was used.</p>
+  </section>
+</body>
+</html>
