@@ -2,6 +2,7 @@ require('dotenv').config();
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { randomBytes } = require('node:crypto');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const request = require('supertest');
@@ -14,11 +15,14 @@ const { Application } = require('../models/Application');
 const { UserResource } = require('../models/UserResource');
 
 const accountEmails = ['aarav.nexora.test@example.com', 'priya.nexora.test@example.com'];
-const integrationEnabled = process.env.NEXORA_RUN_LIVE_DB_TESTS === '1';
+const integrationEnabled = process.env.NEXORA_RUN_LIVE_DB_TESTS === '1'
+  || process.env.npm_lifecycle_event === 'test:live-db';
+const integrationSkipReason = integrationEnabled
+  ? false
+  : 'Set NEXORA_RUN_LIVE_DB_TESTS=1 or run npm run test:live-db to opt in to MongoDB writes';
 
-test('live MongoDB authentication, profile and ownership integration', { skip: !integrationEnabled }, async () => {
-  const password = process.env.NEXORA_LIVE_TEST_PASSWORD;
-  assert.ok(password, 'Set NEXORA_LIVE_TEST_PASSWORD to the synthetic test password');
+test('live MongoDB authentication, profile and ownership integration', { skip: integrationSkipReason }, async () => {
+  const password = process.env.NEXORA_LIVE_TEST_PASSWORD || randomBytes(32).toString('base64url');
   const env = loadEnv();
   assert.ok(env.MONGODB_URI, 'MONGODB_URI is required for this opt-in integration test');
   assert.ok(env.JWT_SECRET, 'JWT_SECRET is required for this opt-in integration test');
@@ -135,7 +139,7 @@ test('live MongoDB authentication, profile and ownership integration', { skip: !
   }
 });
 
-test('MongoDB connection failure is reported and leaves no open connection', { skip: !integrationEnabled, timeout: 20000 }, async () => {
+test('MongoDB connection failure is reported and leaves no open connection', { timeout: 20000 }, async () => {
   await assert.rejects(
     connectDatabase('mongodb://127.0.0.1:1/Nexora'),
     (error) => error.name === 'MongooseServerSelectionError' || error.name === 'MongoServerSelectionError'
