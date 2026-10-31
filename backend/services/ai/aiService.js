@@ -1,11 +1,11 @@
 const { ApiError } = require('../../utils/apiError');
 
-function isAIAvailable() {
-  return false;
+function isAIAvailable(env = process.env) {
+  return Boolean(env.HF_TOKEN);
 }
 
-function ensureAIAvailable() {
-  if (!isAIAvailable()) throw new ApiError(503, 'AI functionality is currently unavailable');
+function ensureAIAvailable(env = process.env) {
+  if (!isAIAvailable(env)) throw new ApiError(503, 'Hugging Face AI is not configured');
 }
 
 module.exports = { isAIAvailable, ensureAIAvailable };

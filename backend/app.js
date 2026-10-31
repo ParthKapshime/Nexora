@@ -23,7 +23,7 @@ function createApp(env = loadEnv()) {
 
   app.use(requestId);
   app.use(helmet({
-    contentSecurityPolicy: { directives: { defaultSrc: ["'self'"], styleSrc: ["'self'", "'unsafe-inline'"], imgSrc: ["'self'", 'data:'], scriptSrc: ["'self'"], objectSrc: ["'none'"], frameAncestors: ["'none'"] } },
+    contentSecurityPolicy: { directives: { defaultSrc: ["'self'"], styleSrc: ["'self'"], imgSrc: ["'self'", 'data:'], scriptSrc: ["'self'"], objectSrc: ["'none'"], frameAncestors: ["'none'"] } },
     hsts: env.NODE_ENV === 'production' ? { maxAge: 15552000, includeSubDomains: true } : false,
     crossOriginResourcePolicy: { policy: 'same-site' }
   }));
@@ -40,6 +40,14 @@ function createApp(env = loadEnv()) {
   app.use(mongoSanitize({ replaceWith: '_' }));
   app.use(rateLimit({ windowMs: 15 * 60 * 1000, limit: 300, standardHeaders: 'draft-7', legacyHeaders: false }));
 
+  app.get('/', (_req, res) => res.json({
+    name: 'Nexora API',
+    status: 'ok',
+    health: '/healthz',
+    readiness: '/readyz',
+    documentation: '/api-docs',
+    openapi: '/openapi.json'
+  }));
   app.get('/healthz', (_req, res) => res.json({ status: 'ok' }));
   app.get('/readyz', (_req, res) => {
     const ready = require('mongoose').connection.readyState === 1;

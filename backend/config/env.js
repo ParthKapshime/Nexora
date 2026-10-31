@@ -4,7 +4,10 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().min(1).max(65535).default(5000),
   MONGODB_URI: z.string().optional(),
+  MONGODB_DNS_SERVERS: z.string().optional(),
   JWT_SECRET: z.string().min(32).optional(),
+  HF_TOKEN: z.string().min(1).optional(),
+  HF_MODEL: z.string().min(1).default('Qwen/Qwen3.8-27B:novita'),
   CORS_ORIGINS: z.string().default('http://localhost:3000'),
   UPLOAD_DIR: z.string().optional()
 });

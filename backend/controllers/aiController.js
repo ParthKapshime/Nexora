@@ -1,7 +1,14 @@
-const { ensureAIAvailable } = require('../services/ai/aiService');
+const { ApiError } = require('../utils/apiError');
+const aiService = require('../services/ai/huggingFace');
 
 function unavailable(_req, _res, next) {
-  try { ensureAIAvailable(); } catch (error) { next(error); }
+  next(new ApiError(503, 'AI functionality is currently unavailable'));
 }
 
-module.exports = { unavailable };
+async function chatCompletion(req, res) {
+  const { HF_TOKEN, HF_MODEL } = req.app.locals.env;
+  const completion = await aiService.completeChat({ token: HF_TOKEN, model: HF_MODEL }, req.validated.body);
+  res.json(completion);
+}
+
+module.exports = { unavailable, chatCompletion };

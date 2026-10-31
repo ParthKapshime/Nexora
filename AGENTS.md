@@ -10,15 +10,26 @@ Ollama local LLM is the only AI provider. The Express backend communicates with 
 
 ### Frontend
 
-- Next.js App Router
-- React and TypeScript
+- React.js for the frontend application and reusable UI components
+- JavaScript (ES6+) throughout the frontend; use `.js` and `.jsx` files
+- Vite for development and production builds
+- React Router DOM for client-side routing and navigation
 - Tailwind CSS
-- shadcn/ui as the primary component foundation
+- shadcn/ui as the primary component foundation, compatible with React and Vite
 - Lucide React for icons
 - Framer Motion for subtle animation
 - React Hook Form and Zod for forms and validation
 - Recharts for charts
 - Axios for API requests
+- React Context API for authentication and shared application state
+- ESLint for code quality and linting
+- Vitest for unit testing
+- React Testing Library for component testing
+- Playwright for end-to-end browser testing
+
+Do not use Next.js, TypeScript, or another frontend framework. Do not create `.ts` or `.tsx` files, use Next.js-specific features or conventions, or introduce TypeScript dependencies or configurations. Use JavaScript ES6+ with `.js` and `.jsx` files, Vite, and React Router DOM throughout the frontend. If existing frontend files use Next.js or TypeScript, document the incompatibility without automatically deleting, migrating, or overwriting those files as part of an instruction-file update.
+
+The application is organized with `frontend/` for the React.js, JavaScript, and Vite application and `backend/` for the existing Node.js and Express.js backend. The frontend communicates with the backend through REST APIs and must not connect directly to MongoDB or AI providers.
 
 Avoid adding unnecessary UI libraries.
 
@@ -145,7 +156,7 @@ Navigation must let users move between modules without losing progress. Do not f
 
 ## Component architecture and code quality
 
-Build modular, reusable, typed components for the application header, sidebar navigation, dashboard cards, progress indicators, skill badges, forms and inputs, tables, status badges, empty states, loading states, error states, and confirmation dialogs.
+Build modular, reusable components for the application header, sidebar navigation, dashboard cards, progress indicators, skill badges, forms and inputs, tables, status badges, empty states, loading states, error states, and confirmation dialogs.
 
 Keep components maintainable. Separate UI from business logic and API communication, use reusable layout components, follow accessible UI practices, and use consistent form validation. Avoid unnecessary duplication and large components that contain all application logic.
 

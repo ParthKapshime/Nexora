@@ -4,6 +4,7 @@ const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 const request = require('supertest');
 const { createApp } = require('../app');
 const { User } = require('../models/User');
@@ -47,6 +48,27 @@ test('registration hashes password and never returns the hash', async () => {
     User.exists = originalExists;
     User.create = originalCreate;
   }
+});
+
+test('login verifies passwords, uses a generic failure, and issues a one-hour JWT', async () => {
+  const originalFindOne = User.findOne;
+  const password = 'SyntheticLogin@2026';
+  const passwordHash = await bcrypt.hash(password, 4);
+  const account = { id: userId, email: 'login@example.invalid', passwordHash, profile: {}, createdAt: new Date(), updatedAt: new Date() };
+  User.findOne = (filter) => ({ select: async () => filter.email === account.email ? account : null });
+  try {
+    const success = await request(app).post('/api/auth/login').send({ email: 'LOGIN@example.invalid', password }).expect(200);
+    assert.equal(success.body.user.email, account.email);
+    assert.equal(success.body.user.passwordHash, undefined);
+    assert.equal(success.body.expiresIn, 3600);
+    const claims = jwt.verify(success.body.token, secret, { algorithms: ['HS256'] });
+    assert.equal(claims.sub, userId);
+    assert.ok(claims.exp > Math.floor(Date.now() / 1000));
+
+    const wrongPassword = await request(app).post('/api/auth/login').send({ email: account.email, password: `${password}wrong` }).expect(401);
+    const unknownAccount = await request(app).post('/api/auth/login').send({ email: 'unknown@example.invalid', password }).expect(401);
+    assert.equal(wrongPassword.body.error, unknownAccount.body.error);
+  } finally { User.findOne = originalFindOne; }
 });
 
 test('profile get returns only the authenticated user’s profile', async () => {

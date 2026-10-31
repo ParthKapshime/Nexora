@@ -1,5 +1,54 @@
 # Nexora backend error and debugging log
 
+## ERR-012 — Security review found permissive CSP and incomplete safe diagnostics
+
+- **Date/time:** 2026-10-31 (Asia/Kolkata)
+- **Module/files:** `backend/app.js`, `backend/middleware/errorHandler.js`, `backend/server.js`, `backend/test/api.test.js`
+- **Finding:** API CSP allowed `style-src 'unsafe-inline'` although Swagger already has a scoped CSP exception. Unexpected request errors used `req.log?.error`, but no request logger populates `req.log`; startup printed raw `error.message`, which could contain connection details.
+- **Corrective action:** Removed `unsafe-inline` from global CSP; added structured error diagnostics limited to request ID, method/path, error type and safe code; startup logs error type/code and safe config paths instead of raw messages. Added CSP and generic-error regression tests.
+- **Retest:** `npm run check` passed 34 tests (2 live-only tests skipped by default); live `/healthz` CSP had no inline allowances. `npm audit --audit-level=low` reported zero vulnerabilities.
+- **Remaining risks:** Process-local rate limiting remains unsuitable for multi-instance deployment without a shared store.
+
+## ERR-013 — First live auth test hit the configured rate limit
+
+- **Date/time:** 2026-10-31 (Asia/Kolkata)
+- **Module/files:** `backend/test/live-auth.integration.test.js`
+- **Exact error:** A valid login expected `200` but got `429` during the first live fixture run.
+- **Why/root cause:** The integration sequence made more than ten registration/login calls in the auth limiter's 15-minute window before the successful login.
+- **Corrective action:** Reordered live login checks and kept the test sequence within the real auth limit; moved broader missing-field and injection validation to isolated tests.
+- **Retest:** Live Mongo integration passed; successful logins returned `200` and negative credentials returned `401`.
+- **Data safety:** `finally` cleanup removed only synthetic user IDs created by that test run; final raw-collection checks found zero test accounts or marker records.
+
+## ERR-014 — Windows child-process signal test did not exercise Node's shutdown handler
+
+- **Date/time:** 2026-10-31 (Asia/Kolkata)
+- **Module/files:** `backend/server.js`, `backend/test/server.test.js`, `backend/test/live-auth.integration.test.js`
+- **Exact error:** A child process sent `SIGINT` through `child.kill()` and exited with a signal code (`null` exit code) instead of invoking the graceful shutdown handler.
+- **Why/root cause:** On this Windows environment, the child-process signal API terminated the child rather than simulating console Ctrl+C delivery to the registered handler.
+- **Corrective action:** Extracted a dependency-injected graceful shutdown handler and unit-tested server close, database disconnect, duplicate signal suppression, successful exit, and disconnect-failure exit. The live database integration separately verifies real Mongoose disconnect.
+- **Retest:** `npm run check` passed both shutdown unit tests; opt-in live database suite passed connection cleanup and unavailable-database handling.
+- **Remaining limitation:** Actual console Ctrl+C delivery was not automated through Windows UI; the handler logic and real DB close path are tested separately.
+
+## ERR-011 — Node SRV resolver refused MongoDB Atlas lookup
+
+- **Date/time:** 2026-10-31 (Asia/Kolkata)
+- **Module/files:** `backend/config/database.js`, `backend/config/env.js`, `backend/server.js`, ignored local `backend/.env`
+- **Exact error:** `querySrv ECONNREFUSED _mongodb._tcp.nexora0.3ksvmm2.mongodb.net` during API startup.
+- **Investigation:** Windows DNS resolution through the configured Wi-Fi resolver succeeded and returned Atlas SRV records, while Node's default SRV query failed. An explicit Node DNS server configuration successfully resolved the same records.
+- **Corrective action:** Added optional comma-separated `MONGODB_DNS_SERVERS` configuration, validated resolver IPs, and passed the setting to `dns.setServers` before Mongoose connects. Set the local ignored `.env` resolver to the machine's current DNS server `192.168.1.1`; documented the optional key in `.env.example`.
+- **Retest:** `npm run check` passed all 30 tests. `npm run dev` started successfully; `/healthz` returned `ok` and `/readyz` reported `ready` with database `connected`.
+- **Remaining risks:** The resolver address is local-network-specific and remains only in ignored `.env`. On another network, use the DNS server address supplied by that network or remove `MONGODB_DNS_SERVERS` to use Node's default resolver.
+
+## ERR-010 — AI route returned `Route not found` in the running server
+
+- **Date/time:** 2026-10-31 (Asia/Kolkata)
+- **Module/files:** `backend/routes/aiRoutes.js`, `backend/config/openapi.js`, local backend process
+- **Observed response:** JSON `404 Route not found` with a request ID, as shown in the user's screenshot.
+- **Investigation:** Chat completion is registered as authenticated `POST /api/ai/chat/completions`; opening that path in a browser issues `GET`, which is unsupported. The already-running Node process also predated the route changes.
+- **Corrective action:** Added authenticated `GET /api/ai` route discovery, documented the POST contract in OpenAPI, regenerated the static spec, and restarted the backend from the project directory.
+- **Retest:** `GET /api/ai` and `GET /api/ai/chat/completions` now return `401` without a bearer token rather than route-not-found; `/openapi.json` includes `/api/ai/chat/completions`; test suite passes (30/30).
+- **Remaining requirement:** Call `POST /api/ai/chat/completions` with a valid bearer token and JSON body. A live provider request requires `HF_TOKEN` and was not attempted.
+
 ## ERR-001 — Workspace is not a Git checkout
 
 - **Date/time:** 2026-10-31 (Asia/Kolkata; exact time not recorded)

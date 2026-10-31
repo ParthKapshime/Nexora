@@ -18,7 +18,16 @@ function errorHandler(error, req, res, _next) {
   const message = error.type === 'entity.parse.failed' ? 'Invalid JSON body'
     : error.type === 'entity.too.large' || error.name === 'MulterError' && error.code === 'LIMIT_FILE_SIZE' ? 'Request size limit exceeded'
       : status >= 500 && !expectedApiError ? 'Internal server error' : error.message;
-  if (status >= 500 && !expectedApiError) req.log?.error({ requestId: req.id, errorName: error.name }, 'Request failed');
+  if (status >= 500 && !expectedApiError) {
+    console.error(JSON.stringify({
+      level: 'error',
+      requestId: req.id,
+      method: req.method,
+      path: req.path,
+      errorName: error.name,
+      ...(typeof error.code === 'string' ? { errorCode: error.code } : {})
+    }));
+  }
   res.status(status).json({ error: message, ...(error.details ? { details: error.details } : {}), requestId: req.id });
 }
 
