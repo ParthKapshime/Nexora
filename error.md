@@ -52,7 +52,8 @@
 - **Files changed:** `decision.html`, `test.md`, `error.md`.
 - **Fix successful/retest:** Not fixed; the repository is still unavailable here.
 - **Remaining risk:** Backend implementation, tests, and authorized Git pushes cannot safely proceed until the actual checkout path is available.
-- **Later resolution (2026-10-31):** User confirmed this folder is the project path and approved Git setup. Root repo initialized on `master`, `origin` configured. The empty nested `backend/.git` repo had no refs, commits, objects, or remote; it was moved intact to ignored `backend/.git.nexora-backup` to avoid an accidental submodule pointer. `git -C backend rev-parse --show-toplevel` now resolves to the project root. Remote advertises no branch refs; push remains pending.
+- **Later resolution (2026-10-31):** User confirmed this folder is the project path and approved Git setup. Root repo initialized on `master`, `origin` configured. The empty nested `backend/.git` repo had no refs, commits, objects, or remote; it was moved intact to ignored `backend/.git.nexora-backup` to avoid an accidental submodule pointer. `git -C backend rev-parse --show-toplevel` now resolves to the project root. The remote originally advertised no branch refs; see final status below.
+- **Final status:** Commit `02563db9bddf0323843a6882a9d5ad3824c722ae` pushed to `origin/master`; `git ls-remote` confirmed the remote ref equals the local commit.
 
 ## ERR-005 — Initial source move commands reported missing destinations
 

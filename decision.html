@@ -26,7 +26,7 @@
       <tr><th>Server</th><td>Port 5000; local development URL <code>http://localhost:5000</code>.</td></tr>
       <tr><th>AI/external data</th><td>Latest instruction says keep all AI inactive. No LLM or external API calls or invented recommendations. <code>AGENTS.md</code> allows only Ollama if AI is approved later.</td></tr>
       <tr><th>Security/docs</th><td>HTTPS readiness and backend security are required. Maintain <code>test.md</code>, <code>error.md</code> and this file.</td></tr>
-      <tr><th>Git</th><td>User approved initialization and remote configuration in this folder. Root repo is on <code>master</code>, remote named <code>origin</code> points to the supplied Nexora URL. Remote currently advertises no branches; no commit or push yet.</td></tr>
+      <tr><th>Git</th><td>User approved initialization and remote configuration in this folder. Root repo is on <code>master</code>; the first commit <code>02563db9bddf0323843a6882a9d5ad3824c722ae</code> was pushed to <code>origin/master</code> and verified remotely.</td></tr>
     </tbody></table>
   </section>
 
@@ -54,7 +54,7 @@
       <li>Decide whether resume text extraction is needed for this phase; it requires selecting a PDF parser.</li>
       <li>Before scaling beyond one server process, configure a shared rate-limit store.</li>
       <li>Thunder Client tests remain unrun. Import <code>backend/openapi.json</code> after local environment configuration.</li>
-      <li>The remote advertises no branches. Push status cannot be verified until a commit is made and remote authentication is available.</li>
+      <li>Production push verification completed for the initial backend commit; subsequent changes must continue using the same remote and normal fast-forward pushes.</li>
     </ul>
   </section>
 
