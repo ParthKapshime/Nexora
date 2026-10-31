@@ -5,11 +5,12 @@
 - **Date:** 2026-10-31 (Asia/Kolkata)
 - **Stage:** Backend foundation and REST module implementation
 - **Runtime:** Node.js v24.13.0; npm 11.6.2; Express 4.
-- **Server:** Intended URL `http://localhost:5000`. `npm start` was attempted and exited before listening because local `JWT_SECRET` is not configured. MongoDB URI is also absent; no Atlas connection was attempted.
-- **Database:** Not connected. Config enforces MongoDB database path `Nexora`.
+- **Server:** Intended URL `http://localhost:5000`. `npm start` was attempted and exited before listening because local `JWT_SECRET` is not configured. The full Express API is not running.
+- **Database:** A direct Mongoose Atlas connection was verified to database `Nexora` after using Windows system DNS for SRV resolution. The check disconnected after verification. The URI remains in ignored local `backend/.env`.
 - **Tools:** Node test runner, Supertest, npm audit, PowerShell, Git. Thunder Client UI/CLI was not available in the current tool session.
 - **ECC:** Read/applied `backend-patterns`, `api-design`, `security-review`, `error-handling`; `database-migrations` was inspected but no migration was needed. `security-scan` targets Claude config absent from this repository. No agents/workflow commands used.
 - **Earlier inventory:** Initial inspection found empty source placeholders and no root Git repo; no tests were run then. User approved local Git setup during the continuation. The AI-inactive decision is implemented.
+- **MongoDB reconnection:** Default Node DNS attempt returned `ECONNREFUSED`; retry using the system DNS resolver succeeded and confirmed database name `Nexora`. No credentials were printed or committed.
 
 ## Implemented API endpoints
 
@@ -90,8 +91,8 @@ To import and run manually:
 
 ## Issues and pending tests
 
-- Server startup was attempted but blocked by absent `JWT_SECRET`; no local `.env` exists. A replacement Mongo URI is also required.
-- MongoDB Atlas connection and persistence tests are blocked. Do not use the password pasted earlier; rotate it first and keep replacement credentials local.
+- Server startup is blocked by absent `JWT_SECRET`; no local JWT signing secret is configured. MongoDB URI is configured locally.
+- Atlas connectivity was verified by direct Mongoose handshake. Persistent application operations are unverified because the Express server is not running.
 - Thunder Client runs are pending user/VS Code execution; importable OpenAPI file is prepared.
 - Resume text extraction is not implemented; no PDF parser selected. Current file check verifies PDF signature, not full document structure.
 - Production TLS and reverse-proxy redirect need a deployment target/certificate.
@@ -113,3 +114,4 @@ To import and run manually:
 |---|---|---|---|---|---|
 | 1 | `02563db9bddf0323843a6882a9d5ad3824c722ae` | `feat(backend): add secure REST API foundation` | 2026-10-31 18:48 Asia/Kolkata | **Verified pushed** to `origin/master` | 47 project files; backend foundation, security, APIs, docs and 27-test suite. `npm run check` passed 27/27 and `npm audit` found 0 vulnerabilities before commit. Remote hash verified with `git ls-remote`. |
 | 2 | `f8c723423a5cfe56cf0d5a143f8e479fa07007f1` | `docs: record verified backend push and decisions` | 2026-10-31 18:49 Asia/Kolkata | **Verified pushed** to `origin/master` | Recorded the first verified push, resolved AI decision, current setup choices and remaining blockers. Documentation-only; no source code changed. Remote hash verified with `git ls-remote`. |
+| 3 | `bbdf90ba11fe8c05df90711743c94c3695b7b219` | `docs: record verified documentation push` | 2026-10-31 (time not recorded) | **Verified pushed** to `origin/master` | Updated the testing record with the second successful push. Remote hash verified with `git ls-remote`. |

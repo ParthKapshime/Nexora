@@ -22,7 +22,7 @@
       <tr><th>Product</th><td>Nexora, an AI-powered career guidance and skill-development platform. <code>AGENTS.md</code> is the primary project guidance.</td></tr>
       <tr><th>Architecture</th><td>Backend modular monolith using existing config, controllers, middleware, models, routes and services folders. No frontend in this phase.</td></tr>
       <tr><th>Stack</th><td>Node.js, Express, MongoDB Atlas/Mongoose, REST, JWT, bcrypt. The backend prompt also explicitly specifies Zod and OpenAPI/Swagger.</td></tr>
-      <tr><th>Database</th><td>Atlas database name is exactly <code>Nexora</code>. The pasted URI is a template; connection not attempted. Rotate the password exposed in the prompt before use.</td></tr>
+      <tr><th>Database</th><td>Atlas database name is exactly <code>Nexora</code>. The user supplied a local credentials file; its URI is saved in ignored <code>backend/.env</code>. A Mongoose connection was verified to <code>Nexora</code>. No secret values are recorded here.</td></tr>
       <tr><th>Server</th><td>Port 5000; local development URL <code>http://localhost:5000</code>.</td></tr>
       <tr><th>AI/external data</th><td>Latest instruction says keep all AI inactive. No LLM or external API calls or invented recommendations. <code>AGENTS.md</code> allows only Ollama if AI is approved later.</td></tr>
       <tr><th>Security/docs</th><td>HTTPS readiness and backend security are required. Maintain <code>test.md</code>, <code>error.md</code> and this file.</td></tr>
@@ -50,7 +50,7 @@
   <section>
     <h2>Remaining blockers and pending decisions</h2>
     <ul>
-      <li>Rotate the MongoDB password exposed in the pasted prompt, then add the replacement URI and a 32+ character JWT secret to local ignored <code>backend/.env</code>. Do not send credentials in chat.</li>
+      <li>MongoDB connectivity is verified. Configure a 32+ character JWT secret in local ignored <code>backend/.env</code> before starting the full API. If that file reuses the password previously exposed in chat, rotate it.</li>
       <li>Decide whether resume text extraction is needed for this phase; it requires selecting a PDF parser.</li>
       <li>Before scaling beyond one server process, configure a shared rate-limit store.</li>
       <li>Thunder Client tests remain unrun. Import <code>backend/openapi.json</code> after local environment configuration.</li>

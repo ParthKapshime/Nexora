@@ -39,6 +39,7 @@
 - **Files changed to fix:** None.
 - **Fix successful/retest:** Blocked pending safe local configuration.
 - **Remaining risk:** Atlas host, authentication and `Nexora` database connectivity remain unverified. Rotate the password exposed in the pasted prompt before use.
+- **Later resolution (2026-10-31):** User supplied a local credential file. Connection to `Nexora` was subsequently verified; see ERR-009. No credential value was added to project documentation or Git.
 
 ## ERR-004 — Existing Git checkout remains unavailable
 
@@ -100,9 +101,22 @@
 - **Module/files:** `backend/server.js`, local environment
 - **Exact error:** `Nexora API startup failed: JWT_SECRET must be configured with at least 32 characters`
 - **Operation:** Run `npm start` to verify server startup.
-- **Why/root cause:** No local `backend/.env` exists; the example contains placeholders only. The required MongoDB URI is also not configured.
+- **Why/root cause at that attempt:** No local `backend/.env` existed, so JWT configuration was missing. The MongoDB URI has since been configured locally, but JWT_SECRET remains unset.
 - **Investigation:** Confirmed `.env` is absent and startup fails before opening a listener or connecting to Atlas.
-- **Corrective action:** None; do not invent database credentials or reuse the previously exposed password. User must rotate that password and configure replacement credentials locally.
-- **Files changed:** None to fix; `.env.example` remains placeholder-only.
-- **Fix successful/retest:** Not fixed; server startup and Atlas connection remain blocked.
-- **Remaining risks:** No live HTTP listener, database connectivity, persistence, or real API integration has been verified.
+- **Corrective action:** MongoDB credentials were loaded from the user-provided local file into ignored `backend/.env`. No JWT secret was generated because it was outside the MongoDB connection request.
+- **Files changed:** Local ignored `backend/.env` only.
+- **Fix successful/retest:** Database connection was subsequently verified; server startup remains blocked until JWT_SECRET is configured.
+- **Remaining risks:** No live HTTP listener or API persistence operations have been verified.
+
+## ERR-009 — Atlas connection initially refused, then verified through system DNS
+
+- **Date/time:** 2026-10-31 (Asia/Kolkata; exact time not recorded)
+- **Module/files:** MongoDB Atlas connectivity; local `backend/.env`
+- **Exact error:** First connection attempt returned `ECONNREFUSED`.
+- **Operation:** Reconnect to Atlas after the user updated the IP access setting.
+- **Why/root cause:** Node's default DNS resolver failed while resolving Atlas SRV records in this environment. Windows system DNS resolved the SRV records successfully.
+- **Investigation:** Re-read only the local ignored URI; inspected DNS status without printing credentials. Retried Mongoose with the Windows-configured DNS servers for that process.
+- **Corrective action:** Created/used local ignored `backend/.env` from the user-supplied credentials file; retried with system DNS. Mongoose connected and confirmed database `Nexora`.
+- **Files changed:** Local ignored `backend/.env`; no tracked application code.
+- **Fix successful/retest:** Yes; Mongoose connection succeeded. The one-shot verification disconnected cleanly afterward.
+- **Remaining risks:** Express server is not running because `JWT_SECRET` is not configured. A persistent app session was not started.
